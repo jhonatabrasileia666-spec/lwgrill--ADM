@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260918-1410-team-create">
+<meta name="app-build" content="20260918-1425-name-password-staff">
 <title>LW Grill House | Painel de Operação</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,7 @@
 .store-schedule-title{padding:4px 0 2px}.store-schedule-title b{display:block;font:700 20px 'Barlow Condensed';text-transform:uppercase}.store-schedule-title span{display:block;margin-top:3px;color:var(--muted);font-size:10px}
 @media(max-width:640px){.store-live-control{grid-template-columns:1fr;margin:0 18px 18px}.store-live-copy{grid-row:auto}.store-live-control .btn{width:100%;min-width:0}.store-schedule-title{padding-top:2px}}
 
-.team-driver-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;border:1px solid var(--line);background:#fff8e8}
-.team-driver-fields[hidden]{display:none!important}
 .team-create-form{border-top:1px solid var(--line)}
-@media(max-width:640px){.team-driver-fields{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -58,7 +55,7 @@
       <button type="button" data-login-role="garcom">Garçom</button>
       <button type="button" data-login-role="entregador">Entregador</button>
     </div>
-    <label id="email-field">E-mail de acesso<input id="login-email" type="email" autocomplete="username" placeholder="seu@email.com"></label>
+    <label id="email-field"><span id="login-identity-label">E-mail de acesso</span><input id="login-email" type="email" autocomplete="username" placeholder="seu@email.com"></label>
     <label>Senha<input id="login-password" type="password" autocomplete="current-password" required placeholder="Digite sua senha"></label>
     <button class="btn fire" type="submit" id="login-button">Entrar como Admin</button>
     <div class="login-error" id="login-error"></div>
@@ -134,7 +131,7 @@
 
   <section class="page" id="page-orders"><div class="panel"><div class="panel-head"><div><h2>Fila de pedidos</h2><p id="orders-subtitle">Pedidos da LW Grill House</p></div><button class="btn ghost small" id="refresh-orders">Atualizar</button></div><div id="orders-list"></div></div></section>
 
-  <section class="page" id="page-logistics"><div class="logistics-grid"><div class="panel"><div class="panel-head"><div><h2>Entregas</h2><p>Pedidos de entrega e seus responsáveis</p></div></div><div id="delivery-orders"></div></div><div class="panel"><div class="panel-head"><div><h2>Entregadores</h2><p>Equipe disponível</p></div><button class="btn fire small" type="button" data-go="team">Cadastrar entregador</button></div><div id="couriers-list"></div><div class="notice" style="margin:16px 18px">O cadastro de entregador agora é feito em <b>Equipe</b>, junto com o e-mail e a senha de acesso ao painel.</div></div></div></section>
+  <section class="page" id="page-logistics"><div class="logistics-grid"><div class="panel"><div class="panel-head"><div><h2>Entregas</h2><p>Pedidos de entrega e seus responsáveis</p></div></div><div id="delivery-orders"></div></div><div class="panel"><div class="panel-head"><div><h2>Entregadores</h2><p>Equipe disponível</p></div><button class="btn fire small" type="button" data-go="team">Cadastrar entregador</button></div><div id="couriers-list"></div><div class="notice" style="margin:16px 18px">O cadastro de entregador é feito em <b>Equipe</b>, usando somente nome e senha de acesso.</div></div></div></section>
 
   <section class="page" id="page-menu">
     <div class="panel">
@@ -156,17 +153,12 @@
     <div class="panel">
       <div class="panel-head"><div><h2>Equipe e acessos</h2><p>Crie o acesso de garçons e entregadores</p></div></div>
       <form class="form-grid team-create-form" id="team-create-form">
-        <label>Nome<input id="team-name" required placeholder="Nome do funcionário"></label>
+        <label>Nome de acesso<input id="team-name" required autocomplete="off" placeholder="Ex.: João"></label>
         <label>Cargo<select id="team-role" required><option value="garcom">Garçom</option><option value="entregador">Entregador</option></select></label>
-        <label>E-mail de acesso<input id="team-email" type="email" required autocomplete="off" placeholder="funcionario@exemplo.com"></label>
-        <label>Senha inicial<input id="team-password" type="password" minlength="6" required autocomplete="new-password" placeholder="Mínimo 6 caracteres"></label>
-        <div class="team-driver-fields full" id="team-driver-fields" hidden>
-          <label>Telefone<input id="team-phone" inputmode="tel" placeholder="(68) 99999-9999"></label>
-          <label>Veículo<input id="team-vehicle" placeholder="Ex.: Moto Honda CG"></label>
-        </div>
+        <label class="full">Senha inicial<input id="team-password" type="password" minlength="6" required autocomplete="new-password" placeholder="Mínimo 6 caracteres"></label>
         <button class="btn fire full" type="submit">Cadastrar funcionário</button>
       </form>
-      <div class="notice" style="margin:0 18px 16px">Depois de cadastrar, entregue o <b>e-mail</b> e a <b>senha inicial</b> ao funcionário. Ele entra escolhendo Garçom ou Entregador na tela de login.</div>
+      <div class="notice" style="margin:0 18px 16px">O funcionário entra usando somente <b>nome + senha</b>. Se já existir alguém com o mesmo nome, use o nome completo para diferenciar.</div>
       <div class="table-wrap"><table class="table"><thead><tr><th>Nome</th><th>Cargo</th><th>Status</th><th>Vínculo entrega</th></tr></thead><tbody id="team-body"></tbody></table></div>
     </div>
   </section>
@@ -246,8 +238,8 @@
 const SUPABASE_URL='https://vtvpxyjgiesnagjoqjdb.supabase.co';const SUPABASE_KEY='sb_publishable_ZpdZJMLzjj7tySviJcrKlw_EYGIJDu2';let adminToken=localStorage.getItem('lw-superadmin-token')||'';let adminViewRole=localStorage.getItem('lw-superadmin-view-role')||'dono';const makeClient=token=>window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:token?{'x-lw-admin-token':token}:{}}});let sb=makeClient(adminToken);const $=id=>document.getElementById(id);const DEFAULT_BURGER_IMAGE='https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=85';const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));const roles={superadmin:'Superadmin',dono:'Admin',garcom:'Garçom',entregador:'Entregador'};let state={session:null,role:null,user:null,isSuperadmin:false,orders:[],products:[],categories:[],couriers:[],team:[],mesas:[],variants:[],regions:[],reportOrders:[],config:null,page:'overview'};let refreshTimer=null;let driverChannel=null;let loginRole='dono';let waiterCategory='all';let waiterCart={};let selectedMesa=null;
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,2500)}
 function setLoading(button,on,text){if(!button)return;if(on){button.dataset.label=button.textContent;button.disabled=true;button.textContent=text||'Carregando...'}else{button.disabled=false;button.textContent=button.dataset.label||button.textContent}}
-function roleAllows(list){return list.split(',').includes(state.role)}
-function setupRoleUI(){document.querySelectorAll('[data-roles]').forEach(el=>el.hidden=!roleAllows(el.dataset.roles));$('profile-role').textContent=roles[state.role]||state.role;$('role-badge').textContent=roles[state.role]||state.role;$('profile-email').textContent=state.user?.email||'';$('side-user').textContent=state.user?.email||roles[state.role]||'';$('avatar').textContent=(roles[state.role]||'LW').slice(0,2).toUpperCase();$('new-product').hidden=!['superadmin','dono'].includes(state.role);$('orders-subtitle').textContent='Pedidos da LW Grill House';if(state.role==='garcom'){$('notice-title').textContent='Modo Garçom';$('notice-text').textContent='Selecione uma mesa, monte o pedido e envie para o Admin.'}else if(state.role==='entregador'){$('notice-title').textContent='Modo Entregador';$('notice-text').textContent='Aqui aparecem somente pedidos que o Admin marcou como Saiu para entrega.'}else{$('notice-title').textContent='Sistema conectado';$('notice-text').textContent='Pedidos, cardápio e logística usam a mesma base da LW Grill House.'}renderQuickLinks()}
+function roleAllows(list){const allowed=list.split(',');return allowed.includes(state.role)||(state.isSuperadmin&&allowed.includes('superadmin'))}
+function setupRoleUI(){document.querySelectorAll('[data-roles]').forEach(el=>el.hidden=!roleAllows(el.dataset.roles));const roleText=state.isSuperadmin?'Superadmin · '+(roles[state.role]||state.role):(roles[state.role]||state.role);const staffName=state.user?.user_metadata?.nome||'';const identity=['garcom','entregador'].includes(state.role)?(staffName||roles[state.role]):(state.isSuperadmin?'Acesso mestre':(state.user?.email||''));$('profile-role').textContent=roleText;$('role-badge').textContent=state.isSuperadmin?'SUPERADMIN':(roles[state.role]||state.role);$('profile-email').textContent=identity;$('side-user').textContent=identity||roleText;$('avatar').textContent=(state.isSuperadmin?'SA':(roles[state.role]||'LW')).slice(0,2).toUpperCase();$('new-product').hidden=!['superadmin','dono'].includes(state.role);$('orders-subtitle').textContent='Pedidos da LW Grill House';if(state.role==='garcom'){$('notice-title').textContent='Modo Garçom';$('notice-text').textContent='Selecione uma mesa, monte o pedido e envie para o Admin.'}else if(state.role==='entregador'){$('notice-title').textContent='Modo Entregador';$('notice-text').textContent='Aqui aparecem somente pedidos que o Admin marcou como Saiu para entrega.'}else{$('notice-title').textContent='Sistema conectado';$('notice-text').textContent='Pedidos, cardápio e logística usam a mesma base da LW Grill House.'}renderQuickLinks()}
 function renderQuickLinks(){const links=[['orders','Pedidos','Acompanhar fila'],['logistics','Logística','Entregas e equipe'],['menu','Cardápio','Produtos e preços'],['team','Equipe','Perfis e acessos']];$('quick-links').innerHTML=links.filter(([p])=>{const b=document.querySelector(`[data-page="${p}"]`);return b&&!b.hidden}).map(([p,t,s])=>`<button class="quick" data-go="${p}"><b>${t}</b><span>${s}</span></button>`).join('')||'<div class="empty">Sem atalhos para este perfil.</div>'}
 function go(page){const btn=document.querySelector(`[data-page="${page}"]`);if(!btn||btn.hidden)return;state.page=page;document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(`page-${page}`).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const titles={overview:'Bom trabalho, equipe.',tables:'Mesas do salão',driver:'Minhas entregas',orders:'Pedidos da casa',logistics:'Logística de entrega',menu:'Cardápio da LW',team:'Equipe e acessos',reports:'Relatórios',settings:'Configurações'};const crumbs={overview:'Visão geral',tables:'Mesas',driver:'Entregas',orders:'Pedidos',logistics:'Logística',menu:'Cardápio',team:'Equipe',reports:'Relatórios',settings:'Configurações'};$('page-title').textContent=titles[page]||'LW Grill House';$('crumb').textContent=crumbs[page]||page;$('sidebar').classList.remove('open');renderAll()}
 function statusLabel(s){return({novo:'Novo',em_preparo:'Em preparo',pronto:'Pronto',saiu_entrega:'Saiu p/ entrega',finalizado:'Finalizado',cancelado:'Cancelado'})[s]||s}
@@ -311,7 +303,6 @@ async function setStoreMode(mode,button){if(!['automatico','aberto','fechado'].i
 async function toggleStoreNow(e){const mode=state.config?.aceitando_pedidos?'fechado':'aberto';await setStoreMode(mode,e.currentTarget)}
 async function enableStoreAutomatic(e){await setStoreMode('automatico',e.currentTarget)}
 
-function updateTeamRoleFields(){const isDriver=$('team-role')?.value==='entregador';const box=$('team-driver-fields');if(box)box.hidden=!isDriver;if($('team-phone'))$('team-phone').required=isDriver}
 async function createTeamUser(e){
   e.preventDefault();
   const b=e.submitter;
@@ -319,35 +310,53 @@ async function createTeamUser(e){
   const payload={
     nome:$('team-name').value.trim(),
     role,
-    email:$('team-email').value.trim(),
-    password:$('team-password').value,
-    telefone:$('team-phone').value.trim(),
-    veiculo:$('team-vehicle').value.trim()
+    password:$('team-password').value
   };
-  if(role==='entregador'&&!payload.telefone){toast('Informe o telefone do entregador');return}
   setLoading(b,true,'Criando acesso...');
   const {data,error}=await sb.functions.invoke('create-team-user',{body:payload});
   setLoading(b,false);
   if(error||data?.error){console.error(error||data?.error);toast(data?.error||error?.message||'Não foi possível cadastrar');return}
   e.target.reset();
   $('team-role').value='garcom';
-  updateTeamRoleFields();
-  toast(role==='entregador'?'Entregador cadastrado com acesso':'Garçom cadastrado com acesso');
+  toast(role==='entregador'?'Entregador cadastrado com nome e senha':'Garçom cadastrado com nome e senha');
   await loadAll();
 }
 
-function setLoginRole(role){loginRole=role;document.querySelectorAll('[data-login-role]').forEach(b=>b.classList.toggle('active',b.dataset.loginRole===role));$('email-field').hidden=false;$('login-email').required=false;$('login-email').disabled=false;$('login-email').placeholder='E-mail de acesso';$('login-title').textContent=`Acesso ${roles[role]}`;$('login-help').textContent='Entre com os dados de acesso do seu perfil.';$('login-button').textContent=`Entrar como ${roles[role]}`;$('login-error').textContent=''}
+function setLoginRole(role){loginRole=role;document.querySelectorAll('[data-login-role]').forEach(b=>b.classList.toggle('active',b.dataset.loginRole===role));const staff=role==='garcom'||role==='entregador';const field=$('login-email'),label=$('login-identity-label');$('email-field').hidden=false;field.disabled=false;field.required=staff;field.type=staff?'text':'email';field.autocomplete='username';field.placeholder=staff?'Digite seu nome':'seu@email.com';if(label)label.textContent=staff?'Nome de acesso':'E-mail de acesso';$('login-title').textContent=`Acesso ${roles[role]}`;$('login-help').textContent=staff?'Entre com o nome e a senha cadastrados pelo Admin.':'Entre com os dados de acesso do seu perfil.';$('login-button').textContent=`Entrar como ${roles[role]}`;$('login-error').textContent=''}
 async function enterPanel(ctx,user,session,isSuperadmin=false){state.session=session;state.user=user||{email:null};state.role=ctx.role;state.isSuperadmin=isSuperadmin;$('login-screen').hidden=true;$('app-shell').hidden=false;setupRoleUI();await loadAll(true);if(state.role==='garcom')go('tables');else if(state.role==='entregador')go('driver');else go('overview');startDriverRealtime();clearInterval(refreshTimer);refreshTimer=setInterval(refreshOperationalData,8000)}
 async function authenticate(){if(adminToken){sb=makeClient(adminToken);const {data,error}=await sb.rpc('meu_contexto_acesso');if(!error&&(data||[]).length){const allowed=['dono','garcom','entregador'];const view=allowed.includes(adminViewRole)?adminViewRole:'dono';await enterPanel({...data[0],role:view},{email:null},{custom:true},true);return}localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono'}sb=makeClient('');const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();return}const {data,error}=await sb.rpc('meu_contexto_acesso');if(error||!(data||[]).length){await sb.auth.signOut();showLogin('Esta conta não está vinculada à equipe da LW Grill House.');return}await enterPanel(data[0],session.user,session,false)}
 function showLogin(message=''){$('app-shell').hidden=true;$('login-screen').hidden=false;$('login-error').textContent=message;clearInterval(refreshTimer)}
-updateTeamRoleFields();
 document.querySelectorAll('[data-login-role]').forEach(btn=>btn.addEventListener('click',()=>setLoginRole(btn.dataset.loginRole)));
-$('login-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('login-button');setLoading(b,true,'Entrando...');$('login-error').textContent='';const senha=$('login-password').value,email=$('login-email').value.trim();const base=makeClient('');if(!email){const {data,error}=await base.functions.invoke('login-superadmin',{body:{password:senha}});if(!error&&data?.token){adminToken=data.token;adminViewRole=loginRole;localStorage.setItem('lw-superadmin-token',adminToken);localStorage.setItem('lw-superadmin-view-role',adminViewRole);sb=makeClient(adminToken);setLoading(b,false);$('login-password').value='';await authenticate();return}setLoading(b,false);$('login-password').value='';$('login-error').textContent='Senha inválida ou temporariamente bloqueada.';return}localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono';sb=makeClient('');const {data:loginData,error}=await sb.auth.signInWithPassword({email,password:senha});setLoading(b,false);$('login-password').value='';if(error){$('login-error').textContent='E-mail ou senha inválidos.';return}const {data:contexts,error:ctxError}=await sb.rpc('meu_contexto_acesso');const ctx=(contexts||[])[0];if(ctxError||!ctx){await sb.auth.signOut();$('login-error').textContent='Conta sem acesso ao painel.';return}if(ctx.role!==loginRole){await sb.auth.signOut();$('login-error').textContent=`Esta conta é de ${roles[ctx.role]||ctx.role}, não de ${roles[loginRole]}.`;return}await enterPanel(ctx,loginData.user,loginData.session,false)});
+$('login-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('login-button');setLoading(b,true,'Entrando...');$('login-error').textContent='';const senha=$('login-password').value,identidade=$('login-email').value.trim();const base=makeClient('');
+if(loginRole==='garcom'||loginRole==='entregador'){
+  if(!identidade){setLoading(b,false);$('login-error').textContent='Digite seu nome.';return}
+  localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono';sb=makeClient('');
+  const {data,error}=await base.functions.invoke('login-staff',{body:{nome:identidade,password:senha,role:loginRole}});
+  if(error||!data?.access_token||!data?.refresh_token){setLoading(b,false);$('login-password').value='';$('login-error').textContent=data?.error||'Nome ou senha inválidos.';return}
+  const {data:sessionData,error:sessionError}=await sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+  if(sessionError||!sessionData.session){setLoading(b,false);$('login-error').textContent='Não foi possível iniciar a sessão.';return}
+  const {data:contexts,error:ctxError}=await sb.rpc('meu_contexto_acesso');const ctx=(contexts||[])[0];
+  setLoading(b,false);$('login-password').value='';
+  if(ctxError||!ctx||ctx.role!==loginRole){await sb.auth.signOut();$('login-error').textContent='Conta sem acesso a este perfil.';return}
+  await enterPanel(ctx,sessionData.user,sessionData.session,false);return
+}
+if(!identidade){
+  const {data,error}=await base.functions.invoke('login-superadmin',{body:{password:senha}});
+  if(!error&&data?.token){adminToken=data.token;adminViewRole=loginRole;localStorage.setItem('lw-superadmin-token',adminToken);localStorage.setItem('lw-superadmin-view-role',adminViewRole);sb=makeClient(adminToken);setLoading(b,false);$('login-password').value='';await authenticate();return}
+  setLoading(b,false);$('login-password').value='';$('login-error').textContent='Senha inválida ou temporariamente bloqueada.';return
+}
+localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono';sb=makeClient('');
+const {data:loginData,error}=await sb.auth.signInWithPassword({email:identidade,password:senha});setLoading(b,false);$('login-password').value='';
+if(error){$('login-error').textContent='E-mail ou senha inválidos.';return}
+const {data:contexts,error:ctxError}=await sb.rpc('meu_contexto_acesso');const ctx=(contexts||[])[0];
+if(ctxError||!ctx){await sb.auth.signOut();$('login-error').textContent='Conta sem acesso ao painel.';return}
+if(ctx.role!==loginRole){await sb.auth.signOut();$('login-error').textContent=`Esta conta é de ${roles[ctx.role]||ctx.role}, não de ${roles[loginRole]}.`;return}
+await enterPanel(ctx,loginData.user,loginData.session,false)});
 $('logout').addEventListener('click',async()=>{try{if(driverChannel){await sb.removeChannel(driverChannel);driverChannel=null}if(adminToken){await sb.rpc('logout_superadmin')}else{await sb.auth.signOut()}}catch(e){console.warn(e)}localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono';sb=makeClient('');state={session:null,role:null,user:null,isSuperadmin:false,orders:[],products:[],categories:[],couriers:[],team:[],mesas:[],variants:[],regions:[],reportOrders:[],config:null,page:'overview'};selectedMesa=null;waiterCart={};waiterCategory='all';setLoginRole('dono');showLogin()});
 $('menu-toggle').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return}const goBtn=e.target.closest('[data-go]');if(goBtn){go(goBtn.dataset.go);return}const table=e.target.closest('[data-open-table]');if(table){openWaiterTable(table.dataset.openTable);return}const cat=e.target.closest('[data-waiter-cat]');if(cat){waiterCategory=cat.dataset.waiterCat;renderWaiterOrder();return}const add=e.target.closest('[data-waiter-add]');if(add){const pid=add.dataset.waiterAdd;const sel=document.querySelector(`[data-waiter-variant="${pid}"]`);const vars=state.variants.filter(v=>v.produto_id===pid&&v.ativo);const variantId=sel?.value||(vars.length===1&&vars[0].nome!=='Padrão'?vars[0].id:'');const key=waiterItemKey(pid,variantId);waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();toast('Item adicionado');return}const plus=e.target.closest('[data-waiter-plus]');if(plus){const key=plus.dataset.waiterPlus;waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();return}const minus=e.target.closest('[data-waiter-minus]');if(minus){const key=minus.dataset.waiterMinus;waiterCart[key]=Math.max(0,(waiterCart[key]||0)-1);if(!waiterCart[key])delete waiterCart[key];renderWaiterCart();return}const status=e.target.closest('[data-status]');if(status){changeStatus(status.dataset.order,status.dataset.status,status);return}const edit=e.target.closest('[data-edit-product]');if(edit){openProduct(state.products.find(p=>p.id===edit.dataset.editProduct));return}const saveCat=e.target.closest('[data-save-category]');if(saveCat){saveCategoryRow(saveCat.dataset.saveCategory,saveCat);return}const saveRegion=e.target.closest('[data-save-region]');if(saveRegion){saveRegionRow(saveRegion.dataset.saveRegion,saveRegion);return}const saveTable=e.target.closest('[data-save-table]');if(saveTable){saveTableRow(saveTable.dataset.saveTable,saveTable);return}if(e.target.id==='add-variant'){addVariantEditorRow();return}const removeVariant=e.target.closest('[data-remove-variant]');if(removeVariant){removeVariant.closest('[data-variant-row]')?.remove();return}if(e.target.closest('[data-close-modal]')){$('product-modal').hidden=true}});
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}const pay=e.target.closest('[data-payment-order]');if(pay){setOrderPayment(pay.dataset.paymentOrder,pay.value,pay)}});
-$('refresh-orders').addEventListener('click',e=>loadAll(true));$('refresh-driver').addEventListener('click',e=>loadAll(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('store-config-form').addEventListener('submit',saveStoreConfig);$('team-create-form').addEventListener('submit',createTeamUser);$('team-role').addEventListener('change',updateTeamRoleFields);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});
+$('refresh-orders').addEventListener('click',e=>loadAll(true));$('refresh-driver').addEventListener('click',e=>loadAll(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('store-config-form').addEventListener('submit',saveStoreConfig);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});
 setLoginRole('dono');authenticate();
 </script>
 </body>
