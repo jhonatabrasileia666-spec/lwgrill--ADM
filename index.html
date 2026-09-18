@@ -4,11 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#29231c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LW Admin">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260918-1440-order-tabs-swipe-menu">
+<meta name="app-build" content="20260918-1500-pwa">
 <title>LW Grill House | Painel de Operação</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -71,6 +78,7 @@
     <label id="email-field"><span id="login-identity-label">E-mail de acesso</span><input id="login-email" type="email" autocomplete="username" placeholder="seu@email.com"></label>
     <label>Senha<input id="login-password" type="password" autocomplete="current-password" required placeholder="Digite sua senha"></label>
     <button class="btn fire" type="submit" id="login-button">Entrar como Admin</button>
+    <button class="btn ghost" type="button" data-pwa-install hidden>Instalar painel no celular</button>
     <div class="login-error" id="login-error"></div>
   </form>
 </div>
@@ -92,7 +100,7 @@
     <button data-page="reports" data-roles="superadmin,dono"><span class="ico">06</span><span>Relatórios</span></button>
     <button data-page="settings" data-roles="superadmin,dono"><span class="ico">07</span><span>Configurações</span></button>
   </nav>
-  <div class="side-foot"><span class="pulse"></span><span id="sync-label">Supabase conectado</span><br><span id="side-user">—</span><button id="logout">Sair da conta</button></div>
+  <div class="side-foot"><span class="pulse"></span><span id="sync-label">Supabase conectado</span><br><span id="side-user">—</span><button type="button" data-pwa-install hidden>Instalar app</button><button id="logout">Sair da conta</button></div>
 </aside>
 <main class="main">
   <div class="topbar"><button class="mobile-toggle" id="menu-toggle">☰</button><div class="crumb">LW Grill House / <strong id="crumb">Visão geral</strong></div><div class="profile"><div class="profile-text"><b id="profile-role">—</b><span id="profile-email">—</span></div><span class="avatar" id="avatar">LW</span></div></div>
@@ -377,6 +385,69 @@ document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}const pay=e.target.closest('[data-payment-order]');if(pay){setOrderPayment(pay.dataset.paymentOrder,pay.value,pay)}});
 $('refresh-orders').addEventListener('click',e=>loadAll(true));$('refresh-driver').addEventListener('click',e=>loadAll(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('store-config-form').addEventListener('submit',saveStoreConfig);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});
 setLoginRole('dono');authenticate();
+</script>
+<script>
+(() => {
+  let installPrompt = null;
+  const installButtons = () => [...document.querySelectorAll('[data-pwa-install]')];
+  const standalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const syncInstallButtons = () => {
+    installButtons().forEach(btn => {
+      btn.hidden = standalone() || !installPrompt;
+    });
+  };
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    installPrompt = event;
+    syncInstallButtons();
+  });
+
+  document.addEventListener('click', async event => {
+    const btn = event.target.closest('[data-pwa-install]');
+    if (!btn || !installPrompt) return;
+    const prompt = installPrompt;
+    installPrompt = null;
+    syncInstallButtons();
+    await prompt.prompt();
+    await prompt.userChoice.catch(() => null);
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    syncInstallButtons();
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+      try {
+        const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+        await registration.update();
+
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              worker.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+
+        let reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloading) return;
+          reloading = true;
+          window.location.reload();
+        });
+      } catch (error) {
+        console.warn('PWA service worker não registrado:', error);
+      }
+    });
+  }
+
+  syncInstallButtons();
+})();
 </script>
 </body>
 </html>
