@@ -66,11 +66,18 @@
 </style>
 
 <style id="finance-styles">
-body.finance-mode{background:#111418}
-body.finance-mode .main{background:#171a1f;max-width:none;width:calc(100% - 0px);min-height:100vh;color:#f4efe5}
-body.finance-mode .topbar .crumb,body.finance-mode .topbar .profile-text span{color:#aaa59b}
-body.finance-mode .topbar .crumb strong,body.finance-mode .topbar .profile-text b,body.finance-mode .intro h1{color:#f4efe5}
-#page-logistics{background:#171a1f;color:#f4efe5;padding:22px;border:1px solid #2d3239;border-radius:18px;box-shadow:0 18px 45px rgba(0,0,0,.14)}
+body:has(#page-logistics.active){background:#171a1f!important}
+body:has(#page-logistics.active) .shell{background:#171a1f!important}
+body:has(#page-logistics.active) .main{background:#171a1f!important;max-width:none!important;width:auto!important;flex:1;min-height:100vh;color:#f4efe5;margin:0!important}
+body:has(#page-logistics.active) .topbar .crumb,
+body:has(#page-logistics.active) .topbar .profile-text span{color:#aaa59b!important}
+body:has(#page-logistics.active) .topbar .crumb strong,
+body:has(#page-logistics.active) .topbar .profile-text b,
+body:has(#page-logistics.active) .intro h1{color:#f4efe5!important}
+body:has(#page-logistics.active) .role-badge{background:#22262c!important;border-color:#3a4048!important;color:#f4efe5!important}
+body:has(#page-logistics.active) .notice{background:#1f2328!important;border-color:#343a43!important;color:#c9c3b8!important}
+body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
+#page-logistics{background:transparent;color:#f4efe5;padding:22px 0 0;border:0;border-radius:0;box-shadow:none}
 #page-logistics .panel,#page-logistics .metric,#page-logistics .desktop-page-actions{background:#22262c;border-color:#3a4048;color:#f4efe5;box-shadow:none}
 #page-logistics .metric.accent{background:#101216;border-color:#30353d;color:#fffaf0}
 #page-logistics .metric span,#page-logistics .metric small,#page-logistics .desktop-page-actions span,#page-logistics .panel-head p,#page-logistics .finance-chart-head p,#page-logistics .finance-calendar-head p,#page-logistics .finance-form label,#page-logistics .finance-help,#page-logistics .finance-calendar-weekday,#page-logistics .finance-chart-day>span,#page-logistics .finance-expense-row span,#page-logistics .finance-note{color:#aaa59b}
@@ -611,7 +618,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260922-3', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
