@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lw-admin-pwa-v20260922-2';
+const CACHE_NAME = 'lw-admin-pwa-v20260922-3';
 const APP_SHELL = [
   './',
   './index.html',
