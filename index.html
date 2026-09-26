@@ -86,6 +86,8 @@
 .push-copy{display:flex;align-items:center;gap:11px}.push-bell{font-size:20px}.push-copy b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em}.push-copy span:not(.push-bell){display:block;margin-top:2px;color:var(--muted);font-size:10px}.push-actions{display:flex;gap:8px;flex-wrap:wrap}.push-setup.active{border-color:#7aa57f;background:#eff8ef}.push-setup.blocked{border-color:#bd7868;background:#fff0eb}
 body.finance-mode .push-setup{background:#22262c;border-color:#3a4048;color:#f4efe5}body.finance-mode .push-copy span:not(.push-bell){color:#aaa59b}
 @media(max-width:640px){.push-setup{align-items:stretch;flex-direction:column}.push-actions .btn{flex:1}}
+
+.printer-panel{margin-top:16px}.printer-settings{padding:18px;display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr) auto;gap:14px;align-items:end}.printer-settings label{font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted)}.printer-settings select{display:block;width:100%;margin-top:7px;padding:11px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:600 12px 'DM Sans'}.printer-help{align-self:center}.printer-help b{display:block;font-size:11px}.printer-help span{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.45}@media(max-width:760px){.printer-settings{grid-template-columns:1fr}.printer-settings .btn{width:100%}}
 </style>
 
 <style id="finance-styles">
@@ -414,6 +416,23 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
       </div>
     </div>
 
+    <div class="panel printer-panel">
+      <div class="panel-head"><div><h2>Impressão térmica</h2><p>Configuração deste PC para impressoras térmicas do Windows, incluindo Elgin</p></div><span class="status" id="printer-status">80 mm</span></div>
+      <div class="printer-settings">
+        <label>Tamanho do papel
+          <select id="printer-paper">
+            <option value="80">80 mm · padrão recomendado</option>
+            <option value="58">58 mm · bobina estreita</option>
+          </select>
+        </label>
+        <div class="printer-help">
+          <b>Como funciona</b>
+          <span>Instale a Elgin no Windows e deixe ela disponível para impressão. O navegador abre a janela normal de impressão e usa o layout térmico escolhido aqui.</span>
+        </div>
+        <button class="btn ghost" type="button" id="printer-test">Testar impressão</button>
+      </div>
+    </div>
+
     <div class="manage-grid">
       <div class="panel">
         <div class="panel-head"><div><h2>Regiões de entrega</h2><p>Defina bairros/áreas e a taxa de cada uma</p></div></div>
@@ -706,7 +725,57 @@ function renderAdminTableFlow(){
 }
 function openAdminTable(id){const mesa=state.mesas.find(m=>String(m.id)===String(id));if(!mesa)return;const c=comandaForMesa(mesa);if(!c){toast('Esta mesa está livre');return}selectedAdminMesaId=mesa.id;renderAdminTableFlow();window.scrollTo({top:0,behavior:'smooth'})}
 function closeAdminTable(){selectedAdminMesaId=null;renderAdminTableFlow()}
-function printComanda(id){const c=state.comandas.find(x=>x.id===id);if(!c){toast('Comanda não encontrada');return}const orders=comandaValidOrders(c),total=Number(c.total||0),opened=new Date(c.aberta_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco'}),lines=orders.map(p=>`<section><div class="launch">Pedido #${esc(p.numero)} · ${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Rio_Branco'})}</div>${(p.itens||[]).map(i=>`<div class="row"><span>${Number(i.quantidade)}x ${esc(i.produto_nome)}${i.variante_nome&&i.variante_nome!=='Padrão'?' '+esc(i.variante_nome):''}</span><b>${money(i.total_item??Number(i.preco_unitario||0)*Number(i.quantidade||0))}</b></div>`).join('')}${p.observacoes?`<div class="obs">Obs.: ${esc(p.observacoes)}</div>`:''}</section>`).join('');const w=window.open('','_blank','width=420,height=700');if(!w){toast('O navegador bloqueou a impressão');return}w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Comanda Mesa ${esc(c.mesa_numero)}</title><style>@page{size:80mm auto;margin:4mm}*{box-sizing:border-box}body{width:72mm;margin:0 auto;font-family:Arial,sans-serif;color:#000;font-size:11px}h1{font-size:18px;text-align:center;margin:0}h2{text-align:center;font-size:15px;margin:4px 0 12px}.meta{text-align:center;font-size:9px;margin-bottom:12px}.launch{font-weight:700;border-top:1px dashed #000;padding-top:8px;margin-top:8px}.row{display:flex;justify-content:space-between;gap:8px;padding:4px 0}.row span{max-width:48mm}.obs{font-size:9px;margin:3px 0 6px}.total{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:10px;padding-top:8px;font-size:16px;font-weight:900}.foot{text-align:center;border-top:1px dashed #000;margin-top:12px;padding-top:8px;font-size:9px}</style></head><body><h1>LW GRILL HOUSE</h1><h2>COMANDA · MESA ${esc(c.mesa_numero)}</h2><div class="meta">Aberta em ${esc(opened)}</div>${lines}<div class="total"><span>TOTAL</span><span>${money(total)}</span></div><div class="foot">Confira os itens antes do pagamento.</div></body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},250)}
+function printerPaper(){
+  const value=localStorage.getItem('lw-printer-paper');
+  return value==='58'?'58':'80';
+}
+function printerLayout(){
+  const paper=printerPaper();
+  return paper==='58'
+    ? {paper:'58mm',body:'50mm',item:'31mm',font:'10px',title:'16px',total:'14px',popup:360}
+    : {paper:'80mm',body:'72mm',item:'48mm',font:'11px',title:'18px',total:'16px',popup:420};
+}
+function syncPrinterSettings(){
+  const paper=printerPaper();
+  if($('printer-paper'))$('printer-paper').value=paper;
+  if($('printer-status'))$('printer-status').textContent=paper+' mm';
+}
+function thermalPrintHtml({title,subtitle,meta='',body='',total='',footer=''}) {
+  const p=printerLayout();
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:${p.paper} auto;margin:4mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{width:${p.body};margin:0 auto;font-family:Arial,sans-serif;color:#000;font-size:${p.font}}h1{font-size:${p.title};text-align:center;margin:0}h2{text-align:center;font-size:14px;margin:4px 0 8px}.meta{text-align:center;font-size:9px;margin-bottom:10px}.launch{font-weight:700;border-top:1px dashed #000;padding-top:7px;margin-top:7px}.row{display:flex;justify-content:space-between;gap:7px;padding:3px 0}.row span{max-width:${p.item};overflow-wrap:anywhere}.obs{font-size:9px;margin:3px 0 6px}.total{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:9px;padding-top:7px;font-size:${p.total};font-weight:900}.foot{text-align:center;border-top:1px dashed #000;margin-top:10px;padding-top:7px;font-size:9px}</style></head><body><h1>LW GRILL HOUSE</h1><h2>${subtitle}</h2>${meta?`<div class="meta">${meta}</div>`:''}${body}${total?`<div class="total"><span>TOTAL</span><span>${total}</span></div>`:''}${footer?`<div class="foot">${footer}</div>`:''}</body></html>`;
+}
+function openThermalPrint(html,title='LW Grill House'){
+  const p=printerLayout();
+  const w=window.open('','_blank',`width=${p.popup},height=700`);
+  if(!w){toast('O navegador bloqueou a impressão. Libere pop-ups para este painel.');return false}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.document.title=title;
+  setTimeout(()=>{w.focus();w.print()},250);
+  return true;
+}
+function testThermalPrinter(){
+  const now=new Date().toLocaleString('pt-BR',{timeZone:'America/Rio_Branco'});
+  const body='<div class="launch">IMPRESSÃO DE TESTE</div><div class="row"><span>1x Item de teste</span><b>R$ 10,00</b></div><div class="row"><span>1x Bebida de teste</span><b>R$ 5,00</b></div><div class="obs">Se este texto estiver legível e sem cortes laterais, a largura está correta.</div>';
+  openThermalPrint(thermalPrintHtml({title:'Teste de impressão',subtitle:'TESTE · '+printerPaper()+' MM',meta:now,body,total:'R$ 15,00',footer:'Impressora térmica pronta para o LW Grill House.'}),'Teste impressão LW');
+}
+function printComanda(id){
+  const c=state.comandas.find(x=>x.id===id);
+  if(!c){toast('Comanda não encontrada');return}
+  const orders=comandaValidOrders(c);
+  const total=Number(c.total||0);
+  const opened=new Date(c.aberta_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco'});
+  const lines=orders.map(p=>`<section><div class="launch">Pedido #${esc(p.numero)} · ${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Rio_Branco'})}</div>${(p.itens||[]).map(i=>`<div class="row"><span>${Number(i.quantidade)}x ${esc(i.produto_nome)}${i.variante_nome&&i.variante_nome!=='Padrão'?' '+esc(i.variante_nome):''}</span><b>${money(i.total_item??Number(i.preco_unitario||0)*Number(i.quantidade||0))}</b></div>`).join('')}${p.observacoes?`<div class="obs">Obs.: ${esc(p.observacoes)}</div>`:''}</section>`).join('');
+  openThermalPrint(thermalPrintHtml({
+    title:`Comanda Mesa ${c.mesa_numero}`,
+    subtitle:`COMANDA · MESA ${esc(c.mesa_numero)}`,
+    meta:`Aberta em ${esc(opened)}`,
+    body:lines,
+    total:money(total),
+    footer:'Confira os itens antes do pagamento.'
+  }),`Comanda Mesa ${c.mesa_numero}`);
+}
 async function closeComanda(id,button){const c=state.comandas.find(x=>x.id===id);if(!c){toast('Comanda não encontrada');return}if(!window.confirm(`Receber ${money(c.total)} da Mesa ${c.mesa_numero} e fechar a comanda?`))return;setLoading(button,true,'Fechando...');const {error}=await sb.rpc('fechar_comanda_mesa',{p_comanda_id:id,p_forma_pagamento:null,p_troco_para:null});setLoading(button,false);if(error){console.error(error);toast(error.message||'Não foi possível fechar a comanda');return}toast(`Comanda da Mesa ${c.mesa_numero} fechada`);selectedAdminMesaId=null;await Promise.all([loadOrders(),loadComandas()]);renderMetrics();renderOrders();renderAdminTableFlow()}
 
 async function loadWaiterData(){const {data:mesas,error:me}=await sb.rpc('listar_mesas_garcom_v2');if(me)throw me;state.mesas=mesas||[];await loadProducts();state.variants=state.variants.filter(v=>v.ativo)}
@@ -798,6 +867,7 @@ function renderSettings(){
   if(auto){auto.textContent=mode==='automatico'?'Horário automático ativo':'Voltar para horário automático';auto.disabled=mode==='automatico'}
   renderRegionsAdmin();
   renderAdminTables();
+  syncPrinterSettings();
 }
 function waiterItemKey(productId,variantId){return productId+'|'+(variantId||'')}
 function waiterVariant(productId,variantId){return state.variants.find(v=>v.produto_id===productId&&v.id===variantId)}
@@ -969,7 +1039,7 @@ sidebar.addEventListener('touchmove',e=>{if(window.innerWidth>640||!sidebar.clas
 sidebar.addEventListener('touchend',e=>{if(window.innerWidth>640||!sidebar.classList.contains('open'))return;const dx=(e.changedTouches[0]?.clientX||sidebarTouchStartX)-sidebarTouchStartX;sidebar.style.transition='transform .22s ease';if(sidebarSwiping&&dx<-55){sidebar.style.transform=`translateX(-${sidebar.offsetWidth}px)`;setTimeout(()=>setSidebarOpen(false),220)}else{sidebar.style.transform='translateX(0)';setTimeout(()=>{sidebar.style.transition='';sidebar.style.transform=''},220)}sidebarSwiping=false},{passive:true});
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return}const goBtn=e.target.closest('[data-go]');if(goBtn){go(goBtn.dataset.go);return}const orderTab=e.target.closest('[data-order-tab]');if(orderTab){orderStatusFilter=orderTab.dataset.orderTab;renderOrders();return}const financeDay=e.target.closest('[data-finance-day]');if(financeDay){financeSelectedDay=Number(financeDay.dataset.financeDay);renderFinanceCalendar();return}const financeDelete=e.target.closest('[data-finance-delete]');if(financeDelete){deleteFinanceExpense(financeDelete.dataset.financeDelete,financeDelete);return}const printCom=e.target.closest('[data-print-comanda]');if(printCom){printComanda(printCom.dataset.printComanda);return}const closeCom=e.target.closest('[data-close-comanda]');if(closeCom){closeComanda(closeCom.dataset.closeComanda,closeCom);return}const adminTable=e.target.closest('[data-open-admin-table]');if(adminTable){openAdminTable(adminTable.dataset.openAdminTable);return}const table=e.target.closest('[data-open-table]');if(table){openWaiterTable(table.dataset.openTable);return}const cat=e.target.closest('[data-waiter-cat]');if(cat){waiterCategory=cat.dataset.waiterCat;renderWaiterOrder();return}const add=e.target.closest('[data-waiter-add]');if(add){const pid=add.dataset.waiterAdd;const sel=document.querySelector(`[data-waiter-variant="${pid}"]`);const vars=state.variants.filter(v=>v.produto_id===pid&&v.ativo);const variantId=sel?.value||(vars.length===1&&vars[0].nome!=='Padrão'?vars[0].id:'');const key=waiterItemKey(pid,variantId);waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();toast('Item adicionado');return}const plus=e.target.closest('[data-waiter-plus]');if(plus){const key=plus.dataset.waiterPlus;waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();return}const minus=e.target.closest('[data-waiter-minus]');if(minus){const key=minus.dataset.waiterMinus;waiterCart[key]=Math.max(0,(waiterCart[key]||0)-1);if(!waiterCart[key])delete waiterCart[key];renderWaiterCart();return}const status=e.target.closest('[data-status]');if(status){changeStatus(status.dataset.order,status.dataset.status,status);return}const edit=e.target.closest('[data-edit-product]');if(edit){openProduct(state.products.find(p=>p.id===edit.dataset.editProduct));return}const saveCat=e.target.closest('[data-save-category]');if(saveCat){saveCategoryRow(saveCat.dataset.saveCategory,saveCat);return}const saveRegion=e.target.closest('[data-save-region]');if(saveRegion){saveRegionRow(saveRegion.dataset.saveRegion,saveRegion);return}const saveTable=e.target.closest('[data-save-table]');if(saveTable){saveTableRow(saveTable.dataset.saveTable,saveTable);return}const teamToggle=e.target.closest('[data-team-toggle]');if(teamToggle){toggleTeamActive(teamToggle.dataset.teamToggle,teamToggle.dataset.teamActive==='true',teamToggle);return}if(e.target.id==='add-variant'){addVariantEditorRow();return}const removeVariant=e.target.closest('[data-remove-variant]');if(removeVariant){removeVariant.closest('[data-variant-row]')?.remove();return}if(e.target.closest('[data-close-modal]')){$('product-modal').hidden=true}});
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}if(e.target.id?.startsWith('schedule-active-')){const i=e.target.id.split('-').pop(),open=$(`schedule-open-${i}`),close=$(`schedule-close-${i}`);if(open)open.disabled=!e.target.checked;if(close)close.disabled=!e.target.checked}});
-$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
+$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
@@ -1010,7 +1080,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-12', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-13', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
