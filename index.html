@@ -81,6 +81,11 @@
 .superadmin-refresh-box b{display:block;font:800 17px 'Barlow Condensed';text-transform:uppercase}
 .superadmin-refresh-box span{display:block;max-width:650px;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:760px){.superadmin-refresh-box{align-items:stretch;flex-direction:column}.superadmin-refresh-box .btn{width:100%}}
+
+.push-setup{margin:0 0 20px;padding:13px 16px;border:1px solid var(--line);background:#fffaf0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.push-copy{display:flex;align-items:center;gap:11px}.push-bell{font-size:20px}.push-copy b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em}.push-copy span:not(.push-bell){display:block;margin-top:2px;color:var(--muted);font-size:10px}.push-actions{display:flex;gap:8px;flex-wrap:wrap}.push-setup.active{border-color:#7aa57f;background:#eff8ef}.push-setup.blocked{border-color:#bd7868;background:#fff0eb}
+body.finance-mode .push-setup{background:#22262c;border-color:#3a4048;color:#f4efe5}body.finance-mode .push-copy span:not(.push-bell){color:#aaa59b}
+@media(max-width:640px){.push-setup{align-items:stretch;flex-direction:column}.push-actions .btn{flex:1}}
 </style>
 
 <style id="finance-styles">
@@ -200,6 +205,10 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
   <div class="topbar"><button class="mobile-toggle" id="menu-toggle">☰</button><div class="crumb">LW Grill House / <strong id="crumb">Visão geral</strong></div><div class="profile"><div class="profile-text"><b id="profile-role">—</b><span id="profile-email">—</span></div><span class="avatar" id="avatar">LW</span></div></div>
   <section class="intro"><div><p class="eyebrow">Central de operação</p><h1 id="page-title">Bom trabalho, equipe.</h1></div><div class="role-badge" id="role-badge">—</div></section>
   <div class="notice"><span>●</span><span><strong id="notice-title">Sistema conectado</strong> · <span id="notice-text">Pedidos, cardápio e financeiro usam a mesma base da LW Grill House.</span></span></div>
+  <div class="push-setup" id="push-setup" data-roles="superadmin,dono">
+    <div class="push-copy"><span class="push-bell">🔔</span><div><b>Notificações de novos pedidos</b><span id="push-status">Verificando este aparelho...</span></div></div>
+    <div class="push-actions"><button class="btn ghost small" type="button" id="push-test" hidden>Testar</button><button class="btn fire small" type="button" id="push-toggle">Ativar notificações</button></div>
+  </div>
 
   <section class="page active" id="page-overview">
     <section class="metrics"><article class="metric accent"><span>Pedidos em aberto</span><strong id="m-open">0</strong><small>Novo, preparo ou pronto</small></article><article class="metric"><span>Em preparo</span><strong id="m-prep">0</strong><small>Na cozinha agora</small></article><article class="metric"><span>Em entrega</span><strong id="m-delivery">0</strong><small>Pedidos na rua</small></article><article class="metric"><span>Itens ativos</span><strong id="m-menu">0</strong><small>No cardápio</small></article></section>
@@ -454,11 +463,146 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
 <div class="toast" id="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
 <script>
-const SUPABASE_URL='https://vtvpxyjgiesnagjoqjdb.supabase.co';const SUPABASE_KEY='sb_publishable_ZpdZJMLzjj7tySviJcrKlw_EYGIJDu2';let adminToken=localStorage.getItem('lw-superadmin-token')||'';let adminViewRole=localStorage.getItem('lw-superadmin-view-role')||'dono';const makeClient=token=>window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:token?{'x-lw-admin-token':token}:{}}});let sb=makeClient(adminToken);const $=id=>document.getElementById(id);const DEFAULT_BURGER_IMAGE='https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=85';const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));const roles={superadmin:'Superadmin',dono:'Admin',garcom:'Garçom',entregador:'Entregador'};let state={session:null,role:null,user:null,isSuperadmin:false,orders:[],comandas:[],products:[],categories:[],couriers:[],team:[],mesas:[],variants:[],regions:[],reportOrders:[],financeOrders:[],financeExpenses:[],financeCosts:[],config:null,page:'overview'};let financeCursorYear=0,financeCursorMonth=0,financeSelectedDay=1;let financeDataLoaded=false,financeLoadError=false;let refreshTimer=null;let driverChannel=null;let knownAppVersion=Number(localStorage.getItem('lw-admin-app-version')||0);let appVersionTimer=null;let loginRole='dono';let waiterCategory='all';let waiterCart={};let waiterExistingComanda=null;let selectedMesa=null;let selectedAdminMesaId=null;let orderStatusFilter='novo';
+const SUPABASE_URL='https://vtvpxyjgiesnagjoqjdb.supabase.co';const SUPABASE_KEY='sb_publishable_ZpdZJMLzjj7tySviJcrKlw_EYGIJDu2';let adminToken=localStorage.getItem('lw-superadmin-token')||'';let adminViewRole=localStorage.getItem('lw-superadmin-view-role')||'dono';const makeClient=token=>window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:token?{'x-lw-admin-token':token}:{}}});let sb=makeClient(adminToken);const $=id=>document.getElementById(id);const DEFAULT_BURGER_IMAGE='https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=85';const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));const roles={superadmin:'Superadmin',dono:'Admin',garcom:'Garçom',entregador:'Entregador'};let state={session:null,role:null,user:null,isSuperadmin:false,orders:[],comandas:[],products:[],categories:[],couriers:[],team:[],mesas:[],variants:[],regions:[],reportOrders:[],financeOrders:[],financeExpenses:[],financeCosts:[],config:null,page:'overview'};let financeCursorYear=0,financeCursorMonth=0,financeSelectedDay=1;let financeDataLoaded=false,financeLoadError=false;let refreshTimer=null;let driverChannel=null;let pushSubscription=null;let knownAppVersion=Number(localStorage.getItem('lw-admin-app-version')||0);let appVersionTimer=null;let loginRole='dono';let waiterCategory='all';let waiterCart={};let waiterExistingComanda=null;let selectedMesa=null;let selectedAdminMesaId=null;let orderStatusFilter='novo';
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,2500)}
 function setLoading(button,on,text){if(!button)return;if(on){button.dataset.label=button.textContent;button.disabled=true;button.textContent=text||'Carregando...'}else{button.disabled=false;button.textContent=button.dataset.label||button.textContent}}
 function roleAllows(list){const allowed=list.split(',');return allowed.includes(state.role)||(state.isSuperadmin&&allowed.includes('superadmin'))}
 function setupRoleUI(){document.querySelectorAll('[data-roles]').forEach(el=>el.hidden=!roleAllows(el.dataset.roles));const roleText=state.isSuperadmin?'Superadmin · '+(roles[state.role]||state.role):(roles[state.role]||state.role);const staffName=state.user?.user_metadata?.nome||'';const identity=['garcom','entregador'].includes(state.role)?(staffName||roles[state.role]):(state.isSuperadmin?'Acesso mestre':(state.user?.email||''));$('profile-role').textContent=roleText;$('role-badge').textContent=state.isSuperadmin?'SUPERADMIN':(roles[state.role]||state.role);$('profile-email').textContent=identity;$('side-user').textContent=identity||roleText;$('avatar').textContent=(state.isSuperadmin?'SA':(roles[state.role]||'LW')).slice(0,2).toUpperCase();$('new-product').hidden=!['superadmin','dono'].includes(state.role);$('orders-subtitle').textContent='Pedidos da LW Grill House';if(state.role==='garcom'){$('notice-title').textContent='Modo Garçom';$('notice-text').textContent='Selecione uma mesa, monte o pedido e lance na comanda da mesa.'}else if(state.role==='entregador'){$('notice-title').textContent='Modo Entregador';$('notice-text').textContent='Aqui aparecem somente pedidos que o Admin marcou como Saiu para entrega.'}else{$('notice-title').textContent='Sistema conectado';$('notice-text').textContent='Pedidos, cardápio e financeiro usam a mesma base da LW Grill House.'}renderQuickLinks()}
+function pushSupported(){
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(ch=>ch.charCodeAt(0)));
+}
+function setPushUi(text,stateName=''){
+  const box=$('push-setup'),status=$('push-status'),toggle=$('push-toggle'),test=$('push-test');
+  if(!box||!status||!toggle||!test)return;
+  box.classList.remove('active','blocked');
+  if(stateName)box.classList.add(stateName);
+  status.textContent=text;
+  const active=stateName==='active';
+  toggle.textContent=active?'Desativar notificações':'Ativar notificações';
+  toggle.dataset.active=active?'true':'false';
+  test.hidden=!active;
+}
+async function refreshPushStatus(){
+  if(!['superadmin','dono'].includes(state.role)&&!state.isSuperadmin)return;
+  if(!pushSupported()){
+    setPushUi('Este navegador não oferece Push aqui. No iPhone, instale o painel na Tela de Início e abra pelo ícone.','blocked');
+    return;
+  }
+  if(Notification.permission==='denied'){
+    setPushUi('Notificações bloqueadas pelo navegador. Libere nas configurações do site/aparelho.','blocked');
+    return;
+  }
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    pushSubscription=await reg.pushManager.getSubscription();
+    if(Notification.permission==='granted'&&pushSubscription){
+      setPushUi('Ativas neste aparelho · novos pedidos podem chegar mesmo com o painel fechado.','active');
+    }else{
+      setPushUi('Desativadas neste aparelho.');
+    }
+  }catch(err){
+    console.error('Push:',err);
+    setPushUi('Não foi possível verificar as notificações.','blocked');
+  }
+}
+async function enablePushNotifications(button){
+  if(!pushSupported()){
+    toast('Neste aparelho, instale o painel como app/PWA para usar notificações.');
+    await refreshPushStatus();
+    return;
+  }
+  if(Notification.permission==='denied'){
+    toast('As notificações estão bloqueadas nas configurações do navegador/aparelho.');
+    await refreshPushStatus();
+    return;
+  }
+  setLoading(button,true,'Ativando...');
+  try{
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted')throw new Error('Permissão de notificação não concedida');
+    const {data:key,error:keyError}=await sb.rpc('push_public_key');
+    if(keyError||!key)throw keyError||new Error('Chave de notificação indisponível');
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(String(key))
+      });
+    }
+    const raw=sub.toJSON();
+    const p256dh=raw.keys?.p256dh,auth=raw.keys?.auth;
+    if(!p256dh||!auth)throw new Error('Assinatura do aparelho incompleta');
+    const {error}=await sb.rpc('registrar_push_subscription',{
+      p_endpoint:sub.endpoint,
+      p_p256dh:p256dh,
+      p_auth:auth
+    });
+    if(error)throw error;
+    pushSubscription=sub;
+    setPushUi('Ativas neste aparelho · novos pedidos podem chegar mesmo com o painel fechado.','active');
+    await reg.showNotification('LW Grill House', {
+      body:'Notificações de novos pedidos ativadas neste aparelho.',
+      icon:'./icons/icon-192.png',
+      badge:'./icons/icon-192.png',
+      tag:'lw-push-enabled'
+    });
+  }catch(err){
+    console.error('Ativar push:',err);
+    toast(err?.message||'Não foi possível ativar as notificações');
+    await refreshPushStatus();
+  }finally{
+    setLoading(button,false);
+  }
+}
+async function disablePushNotifications(button){
+  setLoading(button,true,'Desativando...');
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    if(sub){
+      await sb.rpc('remover_push_subscription',{p_endpoint:sub.endpoint});
+      await sub.unsubscribe();
+    }
+    pushSubscription=null;
+    setPushUi('Desativadas neste aparelho.');
+    toast('Notificações desativadas neste aparelho');
+  }catch(err){
+    console.error('Desativar push:',err);
+    toast('Não foi possível desativar as notificações');
+  }finally{
+    setLoading(button,false);
+  }
+}
+async function togglePushNotifications(button){
+  if(button.dataset.active==='true')return disablePushNotifications(button);
+  return enablePushNotifications(button);
+}
+async function testPushNotification(button){
+  if(!pushSupported()||Notification.permission!=='granted'){toast('Ative as notificações primeiro');return}
+  setLoading(button,true,'Testando...');
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    await reg.showNotification('Teste LW Grill House', {
+      body:'Se você recebeu isto, as notificações deste aparelho estão liberadas.',
+      icon:'./icons/icon-192.png',
+      badge:'./icons/icon-192.png',
+      tag:'lw-push-test',
+      vibrate:[160,80,160]
+    });
+  }catch(err){
+    console.error(err);
+    toast('Não foi possível mostrar a notificação de teste');
+  }finally{
+    setLoading(button,false);
+  }
+}
 async function clearAppCaches(){
   if(!('caches' in window))return;
   try{const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)))}catch(err){console.warn('Cache:',err)}
@@ -786,7 +930,7 @@ async function saveWeeklyHours(e){
 }
 async function toggleTeamActive(id,current,button){const next=!current;if(!window.confirm(next?'Reativar este acesso?':'Bloquear este acesso?'))return;setLoading(button,true,next?'Reativando...':'Bloqueando...');const {error}=await sb.rpc('definir_status_equipe',{p_equipe_id:id,p_ativo:next});setLoading(button,false);if(error){console.error(error);toast(error.message||'Não foi possível atualizar o acesso');return}toast(next?'Acesso reativado':'Acesso bloqueado');await Promise.all([loadTeam(),loadCouriers()]);renderTeam()}
 function setLoginRole(role){loginRole=role;document.querySelectorAll('[data-login-role]').forEach(b=>b.classList.toggle('active',b.dataset.loginRole===role));const staff=role==='garcom'||role==='entregador';const field=$('login-email'),label=$('login-identity-label');$('email-field').hidden=false;field.disabled=false;field.required=staff;field.type=staff?'text':'email';field.autocomplete='username';field.placeholder=staff?'Digite seu nome':'seu@email.com';if(label)label.textContent=staff?'Nome de acesso':'E-mail de acesso';$('login-title').textContent=`Acesso ${roles[role]}`;$('login-help').textContent=staff?'Entre com o nome e a senha cadastrados pelo Admin.':'Entre com os dados de acesso do seu perfil.';$('login-button').textContent=`Entrar como ${roles[role]}`;$('login-error').textContent=''}
-async function enterPanel(ctx,user,session,isSuperadmin=false){state.session=session;state.user=user||{email:null};state.role=ctx.role;state.isSuperadmin=isSuperadmin;$('login-screen').hidden=true;$('app-shell').hidden=false;setupRoleUI();await loadAll(true);if(state.role==='garcom')go('tables');else if(state.role==='entregador')go('driver');else go('overview');startDriverRealtime();startRefreshTimer();startAppVersionWatch()}
+async function enterPanel(ctx,user,session,isSuperadmin=false){state.session=session;state.user=user||{email:null};state.role=ctx.role;state.isSuperadmin=isSuperadmin;$('login-screen').hidden=true;$('app-shell').hidden=false;setupRoleUI();await loadAll(true);if(state.role==='garcom')go('tables');else if(state.role==='entregador')go('driver');else go('overview');startDriverRealtime();startRefreshTimer();startAppVersionWatch();refreshPushStatus()}
 async function authenticate(){if(adminToken){sb=makeClient(adminToken);const {data,error}=await sb.rpc('meu_contexto_acesso');if(!error&&(data||[]).length){const allowed=['dono','garcom','entregador'];const view=allowed.includes(adminViewRole)?adminViewRole:'dono';await enterPanel({...data[0],role:view},{email:null},{custom:true},true);return}localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono'}sb=makeClient('');const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();return}const {data,error}=await sb.rpc('meu_contexto_acesso');if(error||!(data||[]).length){await sb.auth.signOut();showLogin('Esta conta não está vinculada à equipe da LW Grill House.');return}await enterPanel(data[0],session.user,session,false)}
 function showLogin(message=''){$('app-shell').hidden=true;$('login-screen').hidden=false;$('login-error').textContent=message;clearInterval(refreshTimer);clearInterval(appVersionTimer)}
 document.querySelectorAll('[data-login-role]').forEach(btn=>btn.addEventListener('click',()=>setLoginRole(btn.dataset.loginRole)));
@@ -825,8 +969,8 @@ sidebar.addEventListener('touchmove',e=>{if(window.innerWidth>640||!sidebar.clas
 sidebar.addEventListener('touchend',e=>{if(window.innerWidth>640||!sidebar.classList.contains('open'))return;const dx=(e.changedTouches[0]?.clientX||sidebarTouchStartX)-sidebarTouchStartX;sidebar.style.transition='transform .22s ease';if(sidebarSwiping&&dx<-55){sidebar.style.transform=`translateX(-${sidebar.offsetWidth}px)`;setTimeout(()=>setSidebarOpen(false),220)}else{sidebar.style.transform='translateX(0)';setTimeout(()=>{sidebar.style.transition='';sidebar.style.transform=''},220)}sidebarSwiping=false},{passive:true});
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return}const goBtn=e.target.closest('[data-go]');if(goBtn){go(goBtn.dataset.go);return}const orderTab=e.target.closest('[data-order-tab]');if(orderTab){orderStatusFilter=orderTab.dataset.orderTab;renderOrders();return}const financeDay=e.target.closest('[data-finance-day]');if(financeDay){financeSelectedDay=Number(financeDay.dataset.financeDay);renderFinanceCalendar();return}const financeDelete=e.target.closest('[data-finance-delete]');if(financeDelete){deleteFinanceExpense(financeDelete.dataset.financeDelete,financeDelete);return}const printCom=e.target.closest('[data-print-comanda]');if(printCom){printComanda(printCom.dataset.printComanda);return}const closeCom=e.target.closest('[data-close-comanda]');if(closeCom){closeComanda(closeCom.dataset.closeComanda,closeCom);return}const adminTable=e.target.closest('[data-open-admin-table]');if(adminTable){openAdminTable(adminTable.dataset.openAdminTable);return}const table=e.target.closest('[data-open-table]');if(table){openWaiterTable(table.dataset.openTable);return}const cat=e.target.closest('[data-waiter-cat]');if(cat){waiterCategory=cat.dataset.waiterCat;renderWaiterOrder();return}const add=e.target.closest('[data-waiter-add]');if(add){const pid=add.dataset.waiterAdd;const sel=document.querySelector(`[data-waiter-variant="${pid}"]`);const vars=state.variants.filter(v=>v.produto_id===pid&&v.ativo);const variantId=sel?.value||(vars.length===1&&vars[0].nome!=='Padrão'?vars[0].id:'');const key=waiterItemKey(pid,variantId);waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();toast('Item adicionado');return}const plus=e.target.closest('[data-waiter-plus]');if(plus){const key=plus.dataset.waiterPlus;waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();return}const minus=e.target.closest('[data-waiter-minus]');if(minus){const key=minus.dataset.waiterMinus;waiterCart[key]=Math.max(0,(waiterCart[key]||0)-1);if(!waiterCart[key])delete waiterCart[key];renderWaiterCart();return}const status=e.target.closest('[data-status]');if(status){changeStatus(status.dataset.order,status.dataset.status,status);return}const edit=e.target.closest('[data-edit-product]');if(edit){openProduct(state.products.find(p=>p.id===edit.dataset.editProduct));return}const saveCat=e.target.closest('[data-save-category]');if(saveCat){saveCategoryRow(saveCat.dataset.saveCategory,saveCat);return}const saveRegion=e.target.closest('[data-save-region]');if(saveRegion){saveRegionRow(saveRegion.dataset.saveRegion,saveRegion);return}const saveTable=e.target.closest('[data-save-table]');if(saveTable){saveTableRow(saveTable.dataset.saveTable,saveTable);return}const teamToggle=e.target.closest('[data-team-toggle]');if(teamToggle){toggleTeamActive(teamToggle.dataset.teamToggle,teamToggle.dataset.teamActive==='true',teamToggle);return}if(e.target.id==='add-variant'){addVariantEditorRow();return}const removeVariant=e.target.closest('[data-remove-variant]');if(removeVariant){removeVariant.closest('[data-variant-row]')?.remove();return}if(e.target.closest('[data-close-modal]')){$('product-modal').hidden=true}});
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}if(e.target.id?.startsWith('schedule-active-')){const i=e.target.id.split('-').pop(),open=$(`schedule-open-${i}`),close=$(`schedule-close-${i}`);if(open)open.disabled=!e.target.checked;if(close)close.disabled=!e.target.checked}});
-$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false)}});
+$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
 setLoginRole('dono');authenticate();
@@ -866,7 +1010,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-9', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-10', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
