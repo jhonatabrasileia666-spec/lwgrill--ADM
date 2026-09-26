@@ -88,6 +88,8 @@ body.finance-mode .push-setup{background:#22262c;border-color:#3a4048;color:#f4e
 @media(max-width:640px){.push-setup{align-items:stretch;flex-direction:column}.push-actions .btn{flex:1}}
 
 .printer-panel{margin-top:16px}.printer-settings{padding:18px;display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr) auto;gap:14px;align-items:end}.printer-settings label{font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted)}.printer-settings select{display:block;width:100%;margin-top:7px;padding:11px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:600 12px 'DM Sans'}.printer-help{align-self:center}.printer-help b{display:block;font-size:11px}.printer-help span{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.45}@media(max-width:760px){.printer-settings{grid-template-columns:1fr}.printer-settings .btn{width:100%}}
+
+.printer-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.printer-diagnostics{margin:0 18px 18px;padding:14px;border:1px dashed var(--line);background:rgba(255,255,255,.35)}.printer-diag-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.printer-diag-head b{font-size:11px;text-transform:uppercase}.printer-diag-head span{font-size:10px;color:var(--muted)}.printer-diag-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.printer-diag{display:inline-flex;align-items:center;min-height:28px;padding:6px 9px;border:1px solid var(--line);font-size:10px;font-weight:800}.printer-diag.idle{background:#eee9df;color:#6d665c}.printer-diag.ok{background:#e8f4e8;border-color:#80a780;color:#315d36}.printer-diag.warn{background:#fff1dd;border-color:#d5a24a;color:#7c5615}.printer-diag.fail{background:#fde8e2;border-color:#c77a68;color:#7d382d}.printer-disclaimer{margin-top:10px;font-size:9px;line-height:1.45;color:var(--muted)}@media(max-width:760px){.printer-buttons{justify-content:stretch}.printer-buttons .btn{width:100%}.printer-diag-head{align-items:flex-start;flex-direction:column}}
 </style>
 
 <style id="finance-styles">
@@ -429,7 +431,22 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
           <b>Como funciona</b>
           <span>Instale a Elgin no Windows e deixe ela disponível para impressão. O navegador abre a janela normal de impressão e usa o layout térmico escolhido aqui.</span>
         </div>
-        <button class="btn ghost" type="button" id="printer-test">Testar impressão</button>
+        <div class="printer-buttons">
+          <button class="btn ghost" type="button" id="printer-test">Testar impressão</button>
+          <button class="btn fire" type="button" id="printer-simulate">Simular bobina</button>
+          <button class="btn ghost" type="button" id="printer-diagnose">Executar diagnóstico</button>
+        </div>
+      </div>
+      <div class="printer-diagnostics" id="printer-diagnostics">
+        <div class="printer-diag-head"><b>Diagnóstico deste PC</b><span>Valida layout, navegador e pop-up sem precisar da impressora física.</span></div>
+        <div class="printer-diag-grid">
+          <span class="printer-diag idle" id="diag-paper">Papel: aguardando</span>
+          <span class="printer-diag idle" id="diag-layout">Layout: aguardando</span>
+          <span class="printer-diag idle" id="diag-popup">Pop-up: aguardando</span>
+          <span class="printer-diag idle" id="diag-print">Impressão: aguardando</span>
+          <span class="printer-diag idle" id="diag-storage">Configuração local: aguardando</span>
+        </div>
+        <div class="printer-disclaimer">A simulação valida o software e a largura da bobina. Driver, USB/rede, avanço e corte automático só podem ser confirmados com a Elgin física.</div>
       </div>
     </div>
 
@@ -754,6 +771,98 @@ function openThermalPrint(html,title='LW Grill House'){
   w.document.title=title;
   setTimeout(()=>{w.focus();w.print()},250);
   return true;
+}
+function thermalStressBody(){
+  return '<section><div class="launch">DADOS DO PEDIDO</div>'
+    +'<div class="row"><span>Cliente</span><b>Cliente Nome Completo de Teste</b></div>'
+    +'<div class="row"><span>Telefone</span><b>(68) 99999-9999</b></div>'
+    +'<div class="row"><span>Atendimento</span><b>Entrega</b></div>'
+    +'<div class="obs"><b>Endereço:</b> Avenida Principal Muito Comprida, 1234, Bloco B, Próximo ao mercado central</div>'
+    +'<div class="row"><span>Pagamento</span><b>Dinheiro</b></div>'
+    +'<div class="row"><span>Troco para</span><b>R$ 200,00</b></div>'
+    +'<div class="row"><span>Taxa entrega</span><b>R$ 6,00</b></div></section>'
+    +'<section><div class="launch">ITENS · TESTE DE ESTRESSE</div>'
+    +'<div class="row"><span>2x Hambúrguer Especial da Casa com Bacon e Adicional de Queijo</span><b>R$ 59,98</b></div>'
+    +'<div class="row"><span>3x Refrigerante lata · Coca-Cola sem açúcar</span><b>R$ 18,00</b></div>'
+    +'<div class="row"><span>1x Porção Grande de Batata Frita com Cheddar e Bacon</span><b>R$ 29,90</b></div>'
+    +'<div class="obs"><b>OBS.:</b> Retirar cebola, molho separado, enviar guardanapos e tocar a campainha somente uma vez.</div></section>';
+}
+function thermalStressHtml(){
+  const now=new Date().toLocaleString('pt-BR',{timeZone:'America/Rio_Branco'});
+  return thermalPrintHtml({
+    title:'Simulação térmica',
+    subtitle:'SIMULAÇÃO · '+printerPaper()+' MM',
+    meta:now,
+    body:thermalStressBody(),
+    total:'R$ 113,88',
+    footer:'Teste de largura · nenhum texto deve ficar cortado.'
+  });
+}
+function setPrinterDiag(id,text,stateName){
+  const el=$(id);
+  if(!el)return;
+  el.textContent=text;
+  el.className='printer-diag '+stateName;
+}
+function simulateThermalRoll(){
+  const p=printerLayout();
+  let html=thermalStressHtml();
+  const controls='<div class="sim-controls"><b>SIMULADOR '+printerPaper()+' MM</b><span>Confira se nada está cortado. Depois use Imprimir / Salvar PDF.</span><button onclick="window.print()">Imprimir / Salvar PDF</button><button onclick="window.close()">Fechar</button></div>';
+  html=html.replace('</style>','.sim-controls{position:sticky;top:0;z-index:9;background:#fff3cf;border:1px solid #d9b14a;padding:8px;margin:0 0 10px;font-family:Arial,sans-serif}.sim-controls b,.sim-controls span{display:block;margin-bottom:5px}.sim-controls span{font-size:9px}.sim-controls button{margin:3px 4px 0 0;padding:6px 8px;font-weight:700}@media print{.sim-controls{display:none!important}}</style>').replace('<body>','<body>'+controls);
+  const w=window.open('','_blank',`width=${p.popup},height=820`);
+  if(!w){setPrinterDiag('diag-popup','Pop-up: bloqueado','fail');toast('Pop-up bloqueado. Libere pop-ups para usar impressão.');return}
+  setPrinterDiag('diag-popup','Pop-up: liberado','ok');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.document.title='Simulador térmico LW '+printerPaper()+' mm';
+}
+async function runPrinterDiagnostics(){
+  const paper=printerPaper();
+  setPrinterDiag('diag-paper','Papel: '+paper+' mm','ok');
+
+  let storageOk=false;
+  try{
+    const key='lw-printer-diagnostic-test';
+    localStorage.setItem(key,'1');
+    storageOk=localStorage.getItem(key)==='1';
+    localStorage.removeItem(key);
+  }catch(_){}
+  setPrinterDiag('diag-storage',storageOk?'Configuração local: OK':'Configuração local: falhou',storageOk?'ok':'fail');
+
+  const printOk=typeof window.print==='function'&&'onafterprint' in window;
+  setPrinterDiag('diag-print',printOk?'Impressão do navegador: disponível':'Impressão do navegador: limitada',printOk?'ok':'warn');
+
+  const testPopup=window.open('','_blank','width=160,height=100');
+  const popupOk=!!testPopup;
+  if(testPopup){try{testPopup.close()}catch(_){}}
+  setPrinterDiag('diag-popup',popupOk?'Pop-up: liberado':'Pop-up: bloqueado',popupOk?'ok':'fail');
+
+  const iframe=document.createElement('iframe');
+  iframe.setAttribute('aria-hidden','true');
+  iframe.style.cssText='position:fixed;left:-9999px;top:-9999px;width:450px;height:900px;visibility:hidden;border:0';
+  document.body.appendChild(iframe);
+  let layoutOk=false;
+  try{
+    iframe.srcdoc=thermalStressHtml();
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('timeout')),1800);
+      iframe.onload=()=>{clearTimeout(timer);resolve()};
+    });
+    const b=iframe.contentDocument?.body;
+    layoutOk=!!b&&b.scrollWidth<=b.clientWidth+2;
+  }catch(err){
+    console.warn('Diagnóstico de impressão:',err);
+  }finally{
+    iframe.remove();
+  }
+  setPrinterDiag('diag-layout',layoutOk?'Layout: sem estouro lateral':'Layout: revisar largura',layoutOk?'ok':'fail');
+
+  if(layoutOk&&popupOk&&storageOk){
+    toast('Diagnóstico concluído: software de impressão OK neste PC');
+  }else{
+    toast('Diagnóstico concluído. Veja os itens marcados no painel.');
+  }
 }
 function testThermalPrinter(){
   const now=new Date().toLocaleString('pt-BR',{timeZone:'America/Rio_Branco'});
@@ -1092,7 +1201,7 @@ sidebar.addEventListener('touchmove',e=>{if(window.innerWidth>640||!sidebar.clas
 sidebar.addEventListener('touchend',e=>{if(window.innerWidth>640||!sidebar.classList.contains('open'))return;const dx=(e.changedTouches[0]?.clientX||sidebarTouchStartX)-sidebarTouchStartX;sidebar.style.transition='transform .22s ease';if(sidebarSwiping&&dx<-55){sidebar.style.transform=`translateX(-${sidebar.offsetWidth}px)`;setTimeout(()=>setSidebarOpen(false),220)}else{sidebar.style.transform='translateX(0)';setTimeout(()=>{sidebar.style.transition='';sidebar.style.transform=''},220)}sidebarSwiping=false},{passive:true});
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return}const goBtn=e.target.closest('[data-go]');if(goBtn){go(goBtn.dataset.go);return}const orderTab=e.target.closest('[data-order-tab]');if(orderTab){orderStatusFilter=orderTab.dataset.orderTab;renderOrders();return}const financeDay=e.target.closest('[data-finance-day]');if(financeDay){financeSelectedDay=Number(financeDay.dataset.financeDay);renderFinanceCalendar();return}const financeDelete=e.target.closest('[data-finance-delete]');if(financeDelete){deleteFinanceExpense(financeDelete.dataset.financeDelete,financeDelete);return}const printOrderBtn=e.target.closest('[data-print-order]');if(printOrderBtn){printOrder(printOrderBtn.dataset.printOrder);return}const printCom=e.target.closest('[data-print-comanda]');if(printCom){printComanda(printCom.dataset.printComanda);return}const closeCom=e.target.closest('[data-close-comanda]');if(closeCom){closeComanda(closeCom.dataset.closeComanda,closeCom);return}const adminTable=e.target.closest('[data-open-admin-table]');if(adminTable){openAdminTable(adminTable.dataset.openAdminTable);return}const table=e.target.closest('[data-open-table]');if(table){openWaiterTable(table.dataset.openTable);return}const cat=e.target.closest('[data-waiter-cat]');if(cat){waiterCategory=cat.dataset.waiterCat;renderWaiterOrder();return}const add=e.target.closest('[data-waiter-add]');if(add){const pid=add.dataset.waiterAdd;const sel=document.querySelector(`[data-waiter-variant="${pid}"]`);const vars=state.variants.filter(v=>v.produto_id===pid&&v.ativo);const variantId=sel?.value||(vars.length===1&&vars[0].nome!=='Padrão'?vars[0].id:'');const key=waiterItemKey(pid,variantId);waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();toast('Item adicionado');return}const plus=e.target.closest('[data-waiter-plus]');if(plus){const key=plus.dataset.waiterPlus;waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();return}const minus=e.target.closest('[data-waiter-minus]');if(minus){const key=minus.dataset.waiterMinus;waiterCart[key]=Math.max(0,(waiterCart[key]||0)-1);if(!waiterCart[key])delete waiterCart[key];renderWaiterCart();return}const status=e.target.closest('[data-status]');if(status){changeStatus(status.dataset.order,status.dataset.status,status);return}const edit=e.target.closest('[data-edit-product]');if(edit){openProduct(state.products.find(p=>p.id===edit.dataset.editProduct));return}const saveCat=e.target.closest('[data-save-category]');if(saveCat){saveCategoryRow(saveCat.dataset.saveCategory,saveCat);return}const saveRegion=e.target.closest('[data-save-region]');if(saveRegion){saveRegionRow(saveRegion.dataset.saveRegion,saveRegion);return}const saveTable=e.target.closest('[data-save-table]');if(saveTable){saveTableRow(saveTable.dataset.saveTable,saveTable);return}const teamToggle=e.target.closest('[data-team-toggle]');if(teamToggle){toggleTeamActive(teamToggle.dataset.teamToggle,teamToggle.dataset.teamActive==='true',teamToggle);return}if(e.target.id==='add-variant'){addVariantEditorRow();return}const removeVariant=e.target.closest('[data-remove-variant]');if(removeVariant){removeVariant.closest('[data-variant-row]')?.remove();return}if(e.target.closest('[data-close-modal]')){$('product-modal').hidden=true}});
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}if(e.target.id?.startsWith('schedule-active-')){const i=e.target.id.split('-').pop(),open=$(`schedule-open-${i}`),close=$(`schedule-close-${i}`);if(open)open.disabled=!e.target.checked;if(close)close.disabled=!e.target.checked}});
-$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
+$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('printer-simulate').addEventListener('click',simulateThermalRoll);$('printer-diagnose').addEventListener('click',runPrinterDiagnostics);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
@@ -1133,7 +1242,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-14', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-15', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
