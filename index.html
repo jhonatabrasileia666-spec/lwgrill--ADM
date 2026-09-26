@@ -63,6 +63,11 @@
   .order-tab{padding:9px 11px}
 }
 
+
+.payment-options{display:grid;gap:12px;padding:18px}.payment-options label{display:flex;align-items:center;gap:9px;padding:12px;border:1px solid var(--line);background:rgba(255,255,255,.35);font-size:12px;font-weight:700}.payment-options input{width:17px;height:17px;accent-color:var(--fire)}
+.weekly-hours-form{padding:18px}.schedule-list{display:grid;gap:8px;margin-bottom:14px}.schedule-row{display:grid;grid-template-columns:minmax(120px,1fr) 110px auto 110px;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);background:rgba(255,255,255,.3)}.schedule-row>input[type=time]{width:100%;padding:9px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}.schedule-day{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700}.schedule-day input{width:16px;height:16px;accent-color:var(--fire)}
+.table-card.pending{border-color:#df8a38;background:#fff0dc}.table-card.ready{border-color:#63a46c;background:#edf8ee}
+@media(max-width:760px){.schedule-row{grid-template-columns:1fr 1fr}.schedule-row>span{display:none}.schedule-day{grid-column:1/-1}}
 </style>
 
 <style id="finance-styles">
@@ -288,6 +293,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
         <div class="panel-head"><div><h2>Adicionar gasto</h2><p>Gás, motoboy, compras, manutenção e outros</p></div></div>
         <form class="finance-form" id="finance-expense-form">
           <label class="full">Descrição<input id="finance-expense-name" maxlength="120" required placeholder="Ex.: botijão de gás"></label>
+          <label>Categoria<select id="finance-expense-category"><option value="ingredientes">Ingredientes</option><option value="gas">Gás</option><option value="motoboy">Motoboy</option><option value="funcionarios">Funcionários</option><option value="energia">Energia</option><option value="manutencao">Manutenção</option><option value="marketing">Marketing</option><option value="outros" selected>Outros</option></select></label>
           <label>Valor (R$)<input id="finance-expense-value" type="number" min="0.01" step="0.01" required placeholder="0,00"></label>
           <label>Data<input id="finance-expense-date" type="date" required></label>
           <button class="btn fire full" type="submit">Lançar gasto</button>
@@ -328,7 +334,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
         <button class="btn fire full" type="submit">Cadastrar funcionário</button>
       </form>
       <div class="notice" style="margin:0 18px 16px">O funcionário entra usando somente <b>nome + senha</b>. Se já existir alguém com o mesmo nome, use o nome completo para diferenciar.</div>
-      <div class="table-wrap"><table class="table"><thead><tr><th>Nome</th><th>Cargo</th><th>Status</th><th>Vínculo entrega</th></tr></thead><tbody id="team-body"></tbody></table></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Nome</th><th>Cargo</th><th>Status</th><th>Vínculo entrega</th><th>Ação</th></tr></thead><tbody id="team-body"></tbody></table></div>
     </div>
   </section>
 
@@ -365,6 +371,25 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
         <button class="btn fire full" type="submit">Salvar horário e taxa</button>
       </form>
       <div class="notice" style="margin:0 18px 18px">A taxa padrão é usada quando não houver nenhuma região de entrega ativa.</div>
+    </div>
+
+    <div class="manage-grid store-extra-grid">
+      <div class="panel">
+        <div class="panel-head"><div><h2>Formas de pagamento</h2><p>Escolha o que aparece para o cliente no cardápio</p></div></div>
+        <form class="payment-options" id="payment-options-form">
+          <label><input type="checkbox" id="payment-pix"> <span>Pix</span></label>
+          <label><input type="checkbox" id="payment-dinheiro"> <span>Dinheiro</span></label>
+          <label><input type="checkbox" id="payment-cartao"> <span>Cartão</span></label>
+          <button class="btn fire" type="submit">Salvar formas de pagamento</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h2>Horário semanal</h2><p>Defina os dias e horários de funcionamento automático</p></div></div>
+        <form id="weekly-hours-form" class="weekly-hours-form">
+          <div class="schedule-list"><div class="schedule-row" data-schedule-row="0"><label class="schedule-day"><input type="checkbox" id="schedule-active-0"> <span>Domingo</span></label><input type="time" id="schedule-open-0" aria-label="Abertura Domingo"><span>até</span><input type="time" id="schedule-close-0" aria-label="Fechamento Domingo"></div><div class="schedule-row" data-schedule-row="1"><label class="schedule-day"><input type="checkbox" id="schedule-active-1"> <span>Segunda</span></label><input type="time" id="schedule-open-1" aria-label="Abertura Segunda"><span>até</span><input type="time" id="schedule-close-1" aria-label="Fechamento Segunda"></div><div class="schedule-row" data-schedule-row="2"><label class="schedule-day"><input type="checkbox" id="schedule-active-2"> <span>Terça</span></label><input type="time" id="schedule-open-2" aria-label="Abertura Terça"><span>até</span><input type="time" id="schedule-close-2" aria-label="Fechamento Terça"></div><div class="schedule-row" data-schedule-row="3"><label class="schedule-day"><input type="checkbox" id="schedule-active-3"> <span>Quarta</span></label><input type="time" id="schedule-open-3" aria-label="Abertura Quarta"><span>até</span><input type="time" id="schedule-close-3" aria-label="Fechamento Quarta"></div><div class="schedule-row" data-schedule-row="4"><label class="schedule-day"><input type="checkbox" id="schedule-active-4"> <span>Quinta</span></label><input type="time" id="schedule-open-4" aria-label="Abertura Quinta"><span>até</span><input type="time" id="schedule-close-4" aria-label="Fechamento Quinta"></div><div class="schedule-row" data-schedule-row="5"><label class="schedule-day"><input type="checkbox" id="schedule-active-5"> <span>Sexta</span></label><input type="time" id="schedule-open-5" aria-label="Abertura Sexta"><span>até</span><input type="time" id="schedule-close-5" aria-label="Fechamento Sexta"></div><div class="schedule-row" data-schedule-row="6"><label class="schedule-day"><input type="checkbox" id="schedule-active-6"> <span>Sábado</span></label><input type="time" id="schedule-open-6" aria-label="Abertura Sábado"><span>até</span><input type="time" id="schedule-close-6" aria-label="Fechamento Sábado"></div></div>
+          <button class="btn fire full" type="submit">Salvar horários da semana</button>
+        </form>
+      </div>
     </div>
 
     <div class="manage-grid">
