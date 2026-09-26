@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lw-admin-pwa-v20260926-9';
+const CACHE_NAME = 'lw-admin-pwa-v20260926-10';
 const APP_SHELL = [
   './',
   './index.html',
@@ -66,6 +66,43 @@ self.addEventListener('fetch', event => {
         return response;
       }).catch(() => cached);
       return cached || refresh;
+    })
+  );
+});
+
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (_) {
+    data = { title: 'LW Grill House', body: event.data ? event.data.text() : 'Novo pedido recebido' };
+  }
+
+  const title = data.title || 'LW Grill House';
+  const options = {
+    body: data.body || 'Novo pedido recebido',
+    icon: data.icon || './icons/icon-192.png',
+    badge: data.badge || './icons/icon-192.png',
+    tag: data.tag || 'lw-new-order',
+    renotify: true,
+    vibrate: [180, 90, 180],
+    data: data.data || { url: './?from=push' }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = event.notification?.data?.url || './?from=push';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async windows => {
+      for (const client of windows) {
+        if ('navigate' in client) {
+          try { await client.navigate(target); } catch (_) {}
+        }
+        if ('focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(target);
     })
   );
 });
