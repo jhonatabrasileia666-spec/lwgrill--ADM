@@ -189,7 +189,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
   <nav class="nav" id="nav-main">
     <button class="active" data-page="overview" data-roles="superadmin,dono"><span class="ico">IN</span><span>Visão geral</span></button>
     <button data-page="tables" data-roles="superadmin,dono,garcom"><span class="ico">M</span><span>Mesas</span></button>
-    <button data-page="driver" data-roles="superadmin,entregador"><span class="ico">E</span><span>Minhas entregas</span></button>
+    <button data-page="driver" data-roles="entregador"><span class="ico">E</span><span>Minhas entregas</span></button>
     <button data-page="orders" data-roles="superadmin,dono"><span class="ico">PD</span><span>Pedidos</span></button>
   </nav>
   <div class="nav-label" data-roles="superadmin,dono">Gestão da loja</div>
@@ -1010,7 +1010,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-11', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260926-12', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
