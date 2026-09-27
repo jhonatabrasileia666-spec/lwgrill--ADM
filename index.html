@@ -510,48 +510,74 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
 <div class="toast" id="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
 <script>
-const SUPABASE_URL='https://vtvpxyjgiesnagjoqjdb.supabase.co';const SUPABASE_KEY='sb_publishable_ZpdZJMLzjj7tySviJcrKlw_EYGIJDu2';let adminToken=localStorage.getItem('lw-superadmin-token')||'';let adminViewRole=localStorage.getItem('lw-superadmin-view-role')||'dono';const makeClient=token=>window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:token?{'x-lw-admin-token':token}:{}}});let sb=makeClient(adminToken);const $=id=>document.getElementById(id);const PRODUCT_PLACEHOLDER="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22900%22%20height%3D%22700%22%20viewBox%3D%220%200%20900%20700%22%3E%3Crect%20width%3D%22900%22%20height%3D%22700%22%20fill%3D%22%2329231c%22%2F%3E%3Ccircle%20cx%3D%22450%22%20cy%3D%22310%22%20r%3D%22110%22%20fill%3D%22%23e9b32f%22%2F%3E%3Ctext%20x%3D%22450%22%20y%3D%22340%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2276%22%20font-weight%3D%22700%22%20fill%3D%22%2329231c%22%3ELW%3C%2Ftext%3E%3Ctext%20x%3D%22450%22%20y%3D%22490%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2234%22%20fill%3D%22%23fffaf0%22%3EGRILL%20HOUSE%3C%2Ftext%3E%3C%2Fsvg%3E";const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));const roles={superadmin:'Superadmin',dono:'Admin',garcom:'Garçom',entregador:'Entregador'};let state={session:null,role:null,user:null,isSuperadmin:false,orders:[],comandas:[],products:[],categories:[],couriers:[],team:[],mesas:[],variants:[],regions:[],reportOrders:[],financeOrders:[],financeExpenses:[],financeCosts:[],config:null,page:'overview'};let financeCursorYear=0,financeCursorMonth=0,financeSelectedDay=1;let financeDataLoaded=false,financeLoadError=false;let refreshTimer=null;let driverChannel=null;let newOrderChannel=null;let orderAudioCtx=null;let orderSoundInterval=null;let orderSoundTimeout=null;let alertedOrderId=null;let pushSubscription=null;let knownAppVersion=Number(localStorage.getItem('lw-admin-app-version')||0);let appVersionTimer=null;let loginRole='dono';let waiterCategory='all';let waiterCart={};let waiterExistingComanda=null;let selectedMesa=null;let selectedAdminMesaId=null;let orderStatusFilter='novo';
+const SUPABASE_URL='https://vtvpxyjgiesnagjoqjdb.supabase.co';const SUPABASE_KEY='sb_publishable_ZpdZJMLzjj7tySviJcrKlw_EYGIJDu2';let adminToken=localStorage.getItem('lw-superadmin-token')||'';let adminViewRole=localStorage.getItem('lw-superadmin-view-role')||'dono';const makeClient=token=>window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:token?{'x-lw-admin-token':token}:{}}});let sb=makeClient(adminToken);const $=id=>document.getElementById(id);const PRODUCT_PLACEHOLDER="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22900%22%20height%3D%22700%22%20viewBox%3D%220%200%20900%20700%22%3E%3Crect%20width%3D%22900%22%20height%3D%22700%22%20fill%3D%22%2329231c%22%2F%3E%3Ccircle%20cx%3D%22450%22%20cy%3D%22310%22%20r%3D%22110%22%20fill%3D%22%23e9b32f%22%2F%3E%3Ctext%20x%3D%22450%22%20y%3D%22340%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2276%22%20font-weight%3D%22700%22%20fill%3D%22%2329231c%22%3ELW%3C%2Ftext%3E%3Ctext%20x%3D%22450%22%20y%3D%22490%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2234%22%20fill%3D%22%23fffaf0%22%3EGRILL%20HOUSE%3C%2Ftext%3E%3C%2Fsvg%3E";const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));const roles={superadmin:'Superadmin',dono:'Admin',garcom:'Garçom',entregador:'Entregador'};let state={session:null,role:null,user:null,isSuperadmin:false,orders:[],comandas:[],products:[],categories:[],couriers:[],team:[],mesas:[],variants:[],regions:[],reportOrders:[],financeOrders:[],financeExpenses:[],financeCosts:[],config:null,page:'overview'};let financeCursorYear=0,financeCursorMonth=0,financeSelectedDay=1;let financeDataLoaded=false,financeLoadError=false;let refreshTimer=null;let driverChannel=null;let newOrderChannel=null;let newOrderPollTimer=null;let seenOrderIds=new Set();let orderAudioCtx=null;let orderSoundInterval=null;let orderSoundTimeout=null;let alertedOrderId=null;let pushSubscription=null;let knownAppVersion=Number(localStorage.getItem('lw-admin-app-version')||0);let appVersionTimer=null;let loginRole='dono';let waiterCategory='all';let waiterCart={};let waiterExistingComanda=null;let selectedMesa=null;let selectedAdminMesaId=null;let orderStatusFilter='novo';
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,2500)}
 function setLoading(button,on,text){if(!button)return;if(on){button.dataset.label=button.textContent;button.disabled=true;button.textContent=text||'Carregando...'}else{button.disabled=false;button.textContent=button.dataset.label||button.textContent}}
 function roleAllows(list){const allowed=list.split(',');return allowed.includes(state.role)||(state.isSuperadmin&&allowed.includes('superadmin'))}
 function setupRoleUI(){document.querySelectorAll('[data-roles]').forEach(el=>el.hidden=!roleAllows(el.dataset.roles));const roleText=state.isSuperadmin?'Superadmin · '+(roles[state.role]||state.role):(roles[state.role]||state.role);const staffName=state.user?.user_metadata?.nome||'';const identity=['garcom','entregador'].includes(state.role)?(staffName||roles[state.role]):(state.isSuperadmin?'Acesso mestre':(state.user?.email||''));$('profile-role').textContent=roleText;$('role-badge').textContent=state.isSuperadmin?'SUPERADMIN':(roles[state.role]||state.role);$('profile-email').textContent=identity;$('side-user').textContent=identity||roleText;$('avatar').textContent=(state.isSuperadmin?'SA':(roles[state.role]||'LW')).slice(0,2).toUpperCase();$('new-product').hidden=!['superadmin','dono'].includes(state.role);$('orders-subtitle').textContent='Pedidos da LW Grill House';if(state.role==='garcom'){$('notice-title').textContent='Modo Garçom';$('notice-text').textContent='Selecione uma mesa, monte o pedido e lance na comanda da mesa.'}else if(state.role==='entregador'){$('notice-title').textContent='Modo Entregador';$('notice-text').textContent='Aqui aparecem somente pedidos que o Admin marcou como Saiu para entrega.'}else{$('notice-title').textContent='Sistema conectado';$('notice-text').textContent='Pedidos, cardápio e financeiro usam a mesma base da LW Grill House.'}renderQuickLinks()}
-function orderSoundEnabled(){return localStorage.getItem('lw-order-sound-enabled')==='1'}
+function orderSoundEnabled(){
+  const saved=localStorage.getItem('lw-order-sound-enabled');
+  if(saved===null){
+    localStorage.setItem('lw-order-sound-enabled','1');
+    return true;
+  }
+  return saved==='1';
+}
 function setOrderSoundUi(){
   const box=$('pc-sound-setup'),status=$('pc-sound-status'),toggle=$('pc-sound-toggle');
   if(!box||!status||!toggle)return;
   const enabled=orderSoundEnabled();
+  const audioReady=!!orderAudioCtx&&orderAudioCtx.state==='running';
   box.classList.toggle('active',enabled);
-  status.textContent=enabled?'Ativo neste PC · toca quando entrar pedido novo.':'Desativado neste computador.';
+  status.textContent=enabled
+    ? (audioReady?'Ativo neste PC · alarme pronto.':'Ativo · clique em Testar som uma vez para liberar o áudio deste navegador.')
+    :'Desativado neste computador.';
   toggle.textContent=enabled?'Desativar som':'Ativar som';
   toggle.dataset.active=enabled?'true':'false';
 }
 function unlockOrderAudio(){
-  if(!orderSoundEnabled()&&orderAudioCtx)return orderAudioCtx;
   const Ctx=window.AudioContext||window.webkitAudioContext;
   if(!Ctx)return null;
   if(!orderAudioCtx)orderAudioCtx=new Ctx();
-  if(orderAudioCtx.state==='suspended')orderAudioCtx.resume().catch(()=>{});
+  if(orderAudioCtx.state==='suspended'){
+    orderAudioCtx.resume().then(setOrderSoundUi).catch(()=>{});
+  }
   return orderAudioCtx;
+}
+function emitOrderTone(ctx){
+  try{
+    const now=ctx.currentTime;
+    const master=ctx.createGain();
+    master.gain.setValueAtTime(.0001,now);
+    master.gain.exponentialRampToValueAtTime(.42,now+.02);
+    master.gain.setValueAtTime(.42,now+.72);
+    master.gain.exponentialRampToValueAtTime(.0001,now+.95);
+    master.connect(ctx.destination);
+
+    const makeOsc=(type,freq,delay=0)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type=type;
+      osc.frequency.setValueAtTime(freq,now+delay);
+      osc.frequency.setValueAtTime(freq*1.35,now+delay+.18);
+      osc.frequency.setValueAtTime(freq,now+delay+.38);
+      gain.gain.setValueAtTime(.6,now+delay);
+      osc.connect(gain);gain.connect(master);
+      osc.start(now+delay);osc.stop(now+delay+.75);
+    };
+    makeOsc('square',780,0);
+    makeOsc('square',1040,.08);
+  }catch(err){console.warn('Som de pedido:',err)}
 }
 function playOrderSirenOnce(force=false){
   if(!force&&!orderSoundEnabled())return;
   const ctx=unlockOrderAudio();
   if(!ctx)return;
-  try{
-    const now=ctx.currentTime;
-    const osc=ctx.createOscillator();
-    const gain=ctx.createGain();
-    osc.type='square';
-    osc.frequency.setValueAtTime(880,now);
-    osc.frequency.setValueAtTime(1200,now+.18);
-    osc.frequency.setValueAtTime(880,now+.38);
-    gain.gain.setValueAtTime(.0001,now);
-    gain.gain.exponentialRampToValueAtTime(.25,now+.025);
-    gain.gain.setValueAtTime(.25,now+.48);
-    gain.gain.exponentialRampToValueAtTime(.0001,now+.68);
-    osc.connect(gain);gain.connect(ctx.destination);
-    osc.start(now);osc.stop(now+.7);
-  }catch(err){console.warn('Som de pedido:',err)}
+  if(ctx.state==='running'){
+    emitOrderTone(ctx);
+  }else{
+    ctx.resume().then(()=>emitOrderTone(ctx)).catch(err=>console.warn('Áudio bloqueado:',err));
+  }
 }
 function stopNewOrderAlert(){
   clearInterval(orderSoundInterval);orderSoundInterval=null;
@@ -561,8 +587,10 @@ function stopNewOrderAlert(){
 }
 function startNewOrderAlert(order){
   if(!['superadmin','dono'].includes(state.role)&&!state.isSuperadmin)return;
+  const id=String(order?.id||'');
+  if(id&&alertedOrderId===id)return;
   stopNewOrderAlert();
-  alertedOrderId=order?.id||null;
+  alertedOrderId=id||null;
   const number=order?.numero||'—';
   const who=order?.origem==='mesa'
     ? `Mesa ${order?.mesas?.numero||'—'}`
@@ -573,7 +601,7 @@ function startNewOrderAlert(order){
   if($('new-order-alert'))$('new-order-alert').hidden=false;
   if(orderSoundEnabled()){
     playOrderSirenOnce();
-    orderSoundInterval=setInterval(()=>playOrderSirenOnce(),3000);
+    orderSoundInterval=setInterval(()=>playOrderSirenOnce(),2800);
     orderSoundTimeout=setTimeout(stopNewOrderAlert,60000);
   }else{
     orderSoundTimeout=setTimeout(stopNewOrderAlert,12000);
@@ -584,7 +612,7 @@ function toggleOrderSound(button){
   localStorage.setItem('lw-order-sound-enabled',turningOn?'1':'0');
   if(turningOn){
     unlockOrderAudio();
-    playOrderSirenOnce(true);
+    setTimeout(()=>playOrderSirenOnce(true),60);
     toast('Som de novos pedidos ativado neste PC');
   }else{
     stopNewOrderAlert();
@@ -593,18 +621,60 @@ function toggleOrderSound(button){
   setOrderSoundUi();
 }
 function testOrderSound(){
-  unlockOrderAudio();
-  playOrderSirenOnce(true);
-  toast('Som de teste reproduzido');
+  localStorage.setItem('lw-order-sound-enabled','1');
+  const ctx=unlockOrderAudio();
+  if(!ctx){
+    toast('Este navegador não oferece áudio para o alerta');
+    return;
+  }
+  const play=()=>{
+    playOrderSirenOnce(true);
+    setTimeout(()=>playOrderSirenOnce(true),850);
+    setOrderSoundUi();
+    toast('Som de teste reproduzido · deixe o volume do Windows ligado');
+  };
+  if(ctx.state==='running')play();
+  else ctx.resume().then(play).catch(()=>toast('Chrome bloqueou o áudio. Clique novamente em Testar som.'));
+}
+function rememberCurrentOrders(){
+  seenOrderIds=new Set((state.orders||[]).map(o=>String(o.id)));
+}
+async function handleDetectedOrder(rawOrder){
+  const id=String(rawOrder?.id||'');
+  if(!id||seenOrderIds.has(id))return;
+  seenOrderIds.add(id);
+  try{await refreshOrdersOnly()}catch(_){}
+  const order=state.orders.find(o=>String(o.id)===id)||rawOrder;
+  startNewOrderAlert(order);
+}
+async function pollNewOrders(){
+  if((!state.isSuperadmin&&state.role!=='dono')||$('app-shell').hidden)return;
+  try{
+    const {data,error}=await sb.from('pedidos')
+      .select('id,numero,origem,mesa_id,cliente_nome,forma_entrega,total,status,created_at,mesas(numero,nome)')
+      .order('created_at',{ascending:false})
+      .limit(10);
+    if(error)throw error;
+    const rows=(data||[]).slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    for(const row of rows){
+      const id=String(row.id);
+      if(!seenOrderIds.has(id))await handleDetectedOrder(row);
+    }
+  }catch(err){
+    console.warn('Fallback de novo pedido:',err);
+  }
+}
+function startNewOrderFallback(){
+  clearInterval(newOrderPollTimer);
+  rememberCurrentOrders();
+  newOrderPollTimer=setInterval(pollNewOrders,5000);
 }
 function startNewOrderRealtime(){
   if(newOrderChannel){try{sb.removeChannel(newOrderChannel)}catch(_){}newOrderChannel=null}
   if(!state.isSuperadmin&&state.role!=='dono')return;
   newOrderChannel=sb.channel('lw-new-order-alert-'+Math.random().toString(36).slice(2))
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'pedidos'},async payload=>{
-      await refreshOrdersOnly();
-      const order=state.orders.find(o=>String(o.id)===String(payload.new?.id))||payload.new||{};
-      startNewOrderAlert(order);
+      await handleDetectedOrder(payload.new||{});
     }).subscribe();
 }
 function pushSupported(){
@@ -1265,11 +1335,11 @@ async function saveWeeklyHours(e){
 }
 async function toggleTeamActive(id,current,button){const next=!current;if(!window.confirm(next?'Reativar este acesso?':'Bloquear este acesso?'))return;setLoading(button,true,next?'Reativando...':'Bloqueando...');const {error}=await sb.rpc('definir_status_equipe',{p_equipe_id:id,p_ativo:next});setLoading(button,false);if(error){console.error(error);toast(error.message||'Não foi possível atualizar o acesso');return}toast(next?'Acesso reativado':'Acesso bloqueado');await Promise.all([loadTeam(),loadCouriers()]);renderTeam()}
 function setLoginRole(role){loginRole=role;document.querySelectorAll('[data-login-role]').forEach(b=>b.classList.toggle('active',b.dataset.loginRole===role));const staff=role==='garcom'||role==='entregador';const field=$('login-email'),label=$('login-identity-label');$('email-field').hidden=false;field.disabled=false;field.required=staff;field.type=staff?'text':'email';field.autocomplete='username';field.placeholder=staff?'Digite seu nome':'seu@email.com';if(label)label.textContent=staff?'Nome de acesso':'E-mail de acesso';$('login-title').textContent=`Acesso ${roles[role]}`;$('login-help').textContent=staff?'Entre com o nome e a senha cadastrados pelo Admin.':'Entre com os dados de acesso do seu perfil.';$('login-button').textContent=`Entrar como ${roles[role]}`;$('login-error').textContent=''}
-async function enterPanel(ctx,user,session,isSuperadmin=false){state.session=session;state.user=user||{email:null};state.role=ctx.role;state.isSuperadmin=isSuperadmin;$('login-screen').hidden=true;$('app-shell').hidden=false;setupRoleUI();await loadAll(true);if(state.role==='garcom')go('tables');else if(state.role==='entregador')go('driver');else go('overview');startDriverRealtime();startNewOrderRealtime();startRefreshTimer();startAppVersionWatch();refreshPushStatus();setOrderSoundUi()}
+async function enterPanel(ctx,user,session,isSuperadmin=false){state.session=session;state.user=user||{email:null};state.role=ctx.role;state.isSuperadmin=isSuperadmin;$('login-screen').hidden=true;$('app-shell').hidden=false;setupRoleUI();await loadAll(true);if(state.role==='garcom')go('tables');else if(state.role==='entregador')go('driver');else go('overview');startDriverRealtime();startNewOrderRealtime();startNewOrderFallback();startRefreshTimer();startAppVersionWatch();refreshPushStatus();setOrderSoundUi()}
 async function authenticate(){if(adminToken){sb=makeClient(adminToken);const {data,error}=await sb.rpc('meu_contexto_acesso');if(!error&&(data||[]).length){const allowed=['dono','garcom','entregador'];const view=allowed.includes(adminViewRole)?adminViewRole:'dono';await enterPanel({...data[0],role:view},{email:null},{custom:true},true);return}localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono'}sb=makeClient('');const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();return}const {data,error}=await sb.rpc('meu_contexto_acesso');if(error||!(data||[]).length){await sb.auth.signOut();showLogin('Esta conta não está vinculada à equipe da LW Grill House.');return}await enterPanel(data[0],session.user,session,false)}
-function showLogin(message=''){$('app-shell').hidden=true;$('login-screen').hidden=false;$('login-error').textContent=message;clearInterval(refreshTimer);clearInterval(appVersionTimer);stopNewOrderAlert();if(newOrderChannel){try{sb.removeChannel(newOrderChannel)}catch(_){}newOrderChannel=null}}
+function showLogin(message=''){$('app-shell').hidden=true;$('login-screen').hidden=false;$('login-error').textContent=message;clearInterval(refreshTimer);clearInterval(appVersionTimer);clearInterval(newOrderPollTimer);newOrderPollTimer=null;stopNewOrderAlert();if(newOrderChannel){try{sb.removeChannel(newOrderChannel)}catch(_){}newOrderChannel=null}}
 document.querySelectorAll('[data-login-role]').forEach(btn=>btn.addEventListener('click',()=>setLoginRole(btn.dataset.loginRole)));
-$('login-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('login-button');setLoading(b,true,'Entrando...');$('login-error').textContent='';const senha=$('login-password').value,identidade=$('login-email').value.trim();const base=makeClient('');
+$('login-form').addEventListener('submit',async e=>{e.preventDefault();if(orderSoundEnabled())unlockOrderAudio();const b=$('login-button');setLoading(b,true,'Entrando...');$('login-error').textContent='';const senha=$('login-password').value,identidade=$('login-email').value.trim();const base=makeClient('');
 if(loginRole==='garcom'||loginRole==='entregador'){
   if(!identidade){setLoading(b,false);$('login-error').textContent='Digite seu nome.';return}
   localStorage.removeItem('lw-superadmin-token');localStorage.removeItem('lw-superadmin-view-role');adminToken='';adminViewRole='dono';sb=makeClient('');
@@ -1305,7 +1375,7 @@ sidebar.addEventListener('touchend',e=>{if(window.innerWidth>640||!sidebar.class
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return}const goBtn=e.target.closest('[data-go]');if(goBtn){go(goBtn.dataset.go);return}const orderTab=e.target.closest('[data-order-tab]');if(orderTab){orderStatusFilter=orderTab.dataset.orderTab;renderOrders();return}const financeDay=e.target.closest('[data-finance-day]');if(financeDay){financeSelectedDay=Number(financeDay.dataset.financeDay);renderFinanceCalendar();return}const financeDelete=e.target.closest('[data-finance-delete]');if(financeDelete){deleteFinanceExpense(financeDelete.dataset.financeDelete,financeDelete);return}const printOrderBtn=e.target.closest('[data-print-order]');if(printOrderBtn){printOrder(printOrderBtn.dataset.printOrder);return}const printCom=e.target.closest('[data-print-comanda]');if(printCom){printComanda(printCom.dataset.printComanda);return}const closeCom=e.target.closest('[data-close-comanda]');if(closeCom){closeComanda(closeCom.dataset.closeComanda,closeCom);return}const adminTable=e.target.closest('[data-open-admin-table]');if(adminTable){openAdminTable(adminTable.dataset.openAdminTable);return}const table=e.target.closest('[data-open-table]');if(table){openWaiterTable(table.dataset.openTable);return}const cat=e.target.closest('[data-waiter-cat]');if(cat){waiterCategory=cat.dataset.waiterCat;renderWaiterOrder();return}const add=e.target.closest('[data-waiter-add]');if(add){const pid=add.dataset.waiterAdd;const sel=document.querySelector(`[data-waiter-variant="${pid}"]`);const vars=state.variants.filter(v=>v.produto_id===pid&&v.ativo);const variantId=sel?.value||(vars.length===1&&vars[0].nome!=='Padrão'?vars[0].id:'');const key=waiterItemKey(pid,variantId);waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();toast('Item adicionado');return}const plus=e.target.closest('[data-waiter-plus]');if(plus){const key=plus.dataset.waiterPlus;waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();return}const minus=e.target.closest('[data-waiter-minus]');if(minus){const key=minus.dataset.waiterMinus;waiterCart[key]=Math.max(0,(waiterCart[key]||0)-1);if(!waiterCart[key])delete waiterCart[key];renderWaiterCart();return}const status=e.target.closest('[data-status]');if(status){stopNewOrderAlert();changeStatus(status.dataset.order,status.dataset.status,status);return}const edit=e.target.closest('[data-edit-product]');if(edit){openProduct(state.products.find(p=>p.id===edit.dataset.editProduct));return}const saveCat=e.target.closest('[data-save-category]');if(saveCat){saveCategoryRow(saveCat.dataset.saveCategory,saveCat);return}const saveRegion=e.target.closest('[data-save-region]');if(saveRegion){saveRegionRow(saveRegion.dataset.saveRegion,saveRegion);return}const saveTable=e.target.closest('[data-save-table]');if(saveTable){saveTableRow(saveTable.dataset.saveTable,saveTable);return}const teamToggle=e.target.closest('[data-team-toggle]');if(teamToggle){toggleTeamActive(teamToggle.dataset.teamToggle,teamToggle.dataset.teamActive==='true',teamToggle);return}if(e.target.id==='add-variant'){addVariantEditorRow();return}const removeVariant=e.target.closest('[data-remove-variant]');if(removeVariant){removeVariant.closest('[data-variant-row]')?.remove();return}if(e.target.closest('[data-close-modal]')){$('product-modal').hidden=true}});
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}if(e.target.id?.startsWith('schedule-active-')){const i=e.target.id.split('-').pop(),open=$(`schedule-open-${i}`),close=$(`schedule-close-${i}`);if(open)open.disabled=!e.target.checked;if(close)close.disabled=!e.target.checked}});
 $('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('printer-simulate').addEventListener('click',simulateThermalRoll);$('printer-diagnose').addEventListener('click',runPrinterDiagnostics);$('team-create-form').addEventListener('submit',createTeamUser);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('pc-sound-toggle').addEventListener('click',e=>toggleOrderSound(e.currentTarget));$('pc-sound-test').addEventListener('click',testOrderSound);$('new-order-stop').addEventListener('click',stopNewOrderAlert);$('new-order-open').addEventListener('click',()=>{stopNewOrderAlert();orderStatusFilter='novo';go('orders');renderOrders()});$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
-document.addEventListener('pointerdown',()=>{if(orderSoundEnabled())unlockOrderAudio()},{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
+document.addEventListener('pointerdown',()=>{if(orderSoundEnabled()){unlockOrderAudio();setOrderSoundUi()}},{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
 setLoginRole('dono');authenticate();
@@ -1345,7 +1415,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260927-16', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260927-17', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
