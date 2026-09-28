@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260928-1304-busca-pedido-topo">
+<meta name="app-build" content="20260928-1404-endereco-pedido-adm">
 <title>LW Grill House | Painel de Operação</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
@@ -231,6 +231,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
       <div class="form-grid" style="padding:0 18px 18px">
         <label>Tipo do pedido<select id="internal-service"><option value="entrega">Entrega</option><option value="retirada">Retirada</option></select></label>
         <label>Nome do cliente no WhatsApp<input id="internal-customer" autocomplete="off" placeholder="Ex.: Carlos" maxlength="80"></label>
+        <label class="full" id="internal-address-field">Endereço do cliente <span class="mini-note">(opcional)</span><input id="internal-address" autocomplete="street-address" placeholder="Ex.: Rua X, nº 123, bairro..." maxlength="220"></label>
         <label class="full">Observação <span class="mini-note">(opcional)</span><textarea id="internal-note" placeholder="Ex.: sem cebola, ponto da carne..."></textarea></label>
       </div>
     </div>
@@ -1295,20 +1296,26 @@ function renderInternalCart(){
   $('internal-total').textContent=money(total);
   $('send-internal-order').disabled=!entries.length;
 }
+function syncInternalAddressField(){
+  const field=$('internal-address-field'),input=$('internal-address'),isDelivery=$('internal-service')?.value==='entrega';
+  if(field)field.hidden=!isDelivery;
+  if(input){input.disabled=!isDelivery;if(!isDelivery)input.value=''}
+}
 async function sendInternalOrder(button){
   const cliente=$('internal-customer').value.trim();
   const forma=$('internal-service').value;
+  const endereco=forma==='entrega'?$('internal-address').value.trim():null;
   const entries=Object.entries(internalOrderCart).filter(([,q])=>q>0);
   if(cliente.length<2){toast('Informe o nome do cliente do WhatsApp');$('internal-customer').focus();return}
   if(!entries.length){toast('Adicione pelo menos um item');return}
   const itens=entries.map(([key,quantidade])=>{const [produto_id,variante_id]=key.split('|');return{produto_id,variante_id:variante_id||null,quantidade}});
   setLoading(button,true,'Lançando...');
-  const {data,error}=await sb.rpc('criar_pedido_balcao',{p_cliente_nome:cliente,p_forma_entrega:forma,p_observacoes:$('internal-note').value.trim()||null,p_itens:itens});
+  const {data,error}=await sb.rpc('criar_pedido_balcao',{p_cliente_nome:cliente,p_forma_entrega:forma,p_endereco_entrega:endereco||null,p_observacoes:$('internal-note').value.trim()||null,p_itens:itens});
   setLoading(button,false);
   if(error){console.error(error);toast(error.message||'Não foi possível lançar o pedido');return}
   if(data)seenOrderIds.add(String(data));
   internalOrderCart={};internalOrderCategory='all';internalOrderSearch='';
-  $('internal-customer').value='';$('internal-note').value='';$('internal-service').value='entrega';if($('internal-product-search'))$('internal-product-search').value='';
+  $('internal-customer').value='';$('internal-address').value='';$('internal-note').value='';$('internal-service').value='entrega';syncInternalAddressField();if($('internal-product-search'))$('internal-product-search').value='';
   await refreshOrdersOnly();renderInternalOrder();
   toast('Pedido lançado na fila · use Imprimir pedido');
   orderStatusFilter='novo';go('orders');
@@ -1350,10 +1357,10 @@ function deliveryWhatsAppMessage(order){
   const lines=[
     '🚚 *LW GRILL HOUSE — ENTREGA*',
     `Pedido #${order.numero||''}`,
-    `Cliente: ${order.cliente_nome||'Cliente'}`,
-    '',
-    '*Itens:*'
+    `Cliente: ${order.cliente_nome||'Cliente'}`
   ];
+  if(order.endereco_entrega)lines.push(`Endereço: ${order.endereco_entrega}`);
+  lines.push('','*Itens:*');
   for(const item of (order.pedido_itens||[])){
     lines.push(`• ${Number(item.quantidade)}x ${item.produto_nome||'Item'}${item.variante_nome&&item.variante_nome!=='Padrão'?' · '+item.variante_nome:''}`);
   }
@@ -1698,6 +1705,8 @@ document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}if(e.target.id?.startsWith('schedule-active-')){const i=e.target.id.split('-').pop(),open=$(`schedule-open-${i}`),close=$(`schedule-close-${i}`);if(open)open.disabled=!e.target.checked;if(close)close.disabled=!e.target.checked}});
 $('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('send-internal-order').addEventListener('click',e=>sendInternalOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('printer-simulate').addEventListener('click',simulateThermalRoll);$('printer-diagnose').addEventListener('click',runPrinterDiagnostics);$('team-create-form').addEventListener('submit',createTeamUser);$('team-role').addEventListener('change',syncTeamRoleForm);$('owner-account-form').addEventListener('submit',saveOwnerAccount);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('pc-sound-toggle').addEventListener('click',e=>toggleOrderSound(e.currentTarget));$('pc-sound-test').addEventListener('click',testOrderSound);$('new-order-stop').addEventListener('click',stopNewOrderAlert);$('new-order-open').addEventListener('click',()=>{stopNewOrderAlert();orderStatusFilter='novo';go('orders');renderOrders()});$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
 $('internal-product-search').addEventListener('input',e=>{internalOrderSearch=e.target.value;internalOrderCategory='all';renderInternalOrder()});
+$('internal-service').addEventListener('change',syncInternalAddressField);
+syncInternalAddressField();
 document.addEventListener('pointerdown',()=>{if(orderSoundEnabled()){unlockOrderAudio();setOrderSoundUi()}},{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
@@ -1738,7 +1747,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-23', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-24', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
