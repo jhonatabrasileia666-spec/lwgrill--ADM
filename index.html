@@ -358,10 +358,10 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
 
   <section class="page" id="page-team">
     <div class="panel">
-      <div class="panel-head"><div><h2>Equipe e acessos</h2><p>Crie acessos de Admin, garçons e entregadores</p></div></div>
+      <div class="panel-head"><div><h2>Equipe e acessos</h2><p id="team-panel-help">Crie os acessos da equipe operacional</p></div></div>
       <form class="form-grid team-create-form" id="team-create-form">
         <label>Nome<input id="team-name" required autocomplete="off" placeholder="Ex.: João"></label>
-        <label>Cargo<select id="team-role" required><option value="garcom">Garçom</option><option value="entregador">Entregador</option><option value="dono" id="team-role-dono">Admin / Dono</option></select></label>
+        <label>Cargo<select id="team-role" required><option value="garcom">Garçom</option><option value="entregador">Entregador</option></select></label>
         <label class="full" id="team-email-field" hidden>E-mail do Admin<input id="team-email" type="email" autocomplete="off" placeholder="dono@empresa.com"></label>
         <label class="full">Senha inicial<input id="team-password" type="password" minlength="6" required autocomplete="new-password" placeholder="Mínimo 6 caracteres"></label>
         <button class="btn fire full" type="submit" id="team-submit">Cadastrar funcionário</button>
@@ -404,6 +404,19 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
         <button class="btn fire full" type="submit">Salvar horário e taxa</button>
       </form>
       <div class="notice" style="margin:0 18px 18px">A taxa padrão é usada quando não houver nenhuma região de entrega ativa.</div>
+    </div>
+
+    <div class="panel" id="owner-account-panel" hidden style="margin-top:16px">
+      <div class="panel-head"><div><h2>Minha conta</h2><p>Altere seus próprios dados de acesso ao painel</p></div><span class="status">ADMIN</span></div>
+      <form class="form-grid" id="owner-account-form">
+        <label>Seu nome<input id="owner-account-name" required autocomplete="name" placeholder="Nome do responsável"></label>
+        <label>Seu e-mail de acesso<input id="owner-account-email" type="email" required autocomplete="email" placeholder="seu@email.com"></label>
+        <label class="full">Senha atual<input id="owner-account-current-password" type="password" required autocomplete="current-password" placeholder="Confirme sua senha atual"></label>
+        <label>Nova senha <span class="mini-note">(opcional)</span><input id="owner-account-new-password" type="password" minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres"></label>
+        <label>Confirmar nova senha<input id="owner-account-confirm-password" type="password" minlength="6" autocomplete="new-password" placeholder="Repita a nova senha"></label>
+        <button class="btn fire full" type="submit" id="owner-account-save">Salvar minha conta</button>
+      </form>
+      <div class="notice" style="margin:0 18px 18px">Para alterar nome, e-mail ou senha, confirme primeiro a <b>senha atual</b>. Esta área altera somente a sua própria conta.</div>
     </div>
 
     <div class="manage-grid store-extra-grid">
@@ -515,7 +528,7 @@ const SUPABASE_URL='https://vtvpxyjgiesnagjoqjdb.supabase.co';const SUPABASE_KEY
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,2500)}
 function setLoading(button,on,text){if(!button)return;if(on){button.dataset.label=button.textContent;button.disabled=true;button.textContent=text||'Carregando...'}else{button.disabled=false;button.textContent=button.dataset.label||button.textContent}}
 function roleAllows(list){const allowed=list.split(',');return allowed.includes(state.role)||(state.isSuperadmin&&allowed.includes('superadmin'))}
-function setupRoleUI(){document.querySelectorAll('[data-roles]').forEach(el=>el.hidden=!roleAllows(el.dataset.roles));const roleText=state.isSuperadmin?'Superadmin · '+(roles[state.role]||state.role):(roles[state.role]||state.role);const staffName=state.user?.user_metadata?.nome||'';const identity=['garcom','entregador'].includes(state.role)?(staffName||roles[state.role]):(state.isSuperadmin?'Acesso mestre':(state.user?.email||''));$('profile-role').textContent=roleText;$('role-badge').textContent=state.isSuperadmin?'SUPERADMIN':(roles[state.role]||state.role);$('profile-email').textContent=identity;$('side-user').textContent=identity||roleText;$('avatar').textContent=(state.isSuperadmin?'SA':(roles[state.role]||'LW')).slice(0,2).toUpperCase();$('new-product').hidden=!['superadmin','dono'].includes(state.role);$('orders-subtitle').textContent='Pedidos da LW Grill House';if(state.role==='garcom'){$('notice-title').textContent='Modo Garçom';$('notice-text').textContent='Selecione uma mesa, monte o pedido e lance na comanda da mesa.'}else if(state.role==='entregador'){$('notice-title').textContent='Modo Entregador';$('notice-text').textContent='Aqui aparecem somente pedidos que o Admin marcou como Saiu para entrega.'}else{$('notice-title').textContent='Sistema conectado';$('notice-text').textContent='Pedidos, cardápio e financeiro usam a mesma base da LW Grill House.'}renderQuickLinks();syncTeamRoleForm()}
+function setupRoleUI(){document.querySelectorAll('[data-roles]').forEach(el=>el.hidden=!roleAllows(el.dataset.roles));const roleText=state.isSuperadmin?'Superadmin · '+(roles[state.role]||state.role):(roles[state.role]||state.role);const staffName=state.user?.user_metadata?.nome||'';const identity=['garcom','entregador'].includes(state.role)?(staffName||roles[state.role]):(state.isSuperadmin?'Acesso mestre':(state.user?.email||''));$('profile-role').textContent=roleText;$('role-badge').textContent=state.isSuperadmin?'SUPERADMIN':(roles[state.role]||state.role);$('profile-email').textContent=identity;$('side-user').textContent=identity||roleText;$('avatar').textContent=(state.isSuperadmin?'SA':(roles[state.role]||'LW')).slice(0,2).toUpperCase();$('new-product').hidden=!['superadmin','dono'].includes(state.role);$('orders-subtitle').textContent='Pedidos da LW Grill House';if(state.role==='garcom'){$('notice-title').textContent='Modo Garçom';$('notice-text').textContent='Selecione uma mesa, monte o pedido e lance na comanda da mesa.'}else if(state.role==='entregador'){$('notice-title').textContent='Modo Entregador';$('notice-text').textContent='Aqui aparecem somente pedidos que o Admin marcou como Saiu para entrega.'}else{$('notice-title').textContent='Sistema conectado';$('notice-text').textContent='Pedidos, cardápio e financeiro usam a mesma base da LW Grill House.'}renderQuickLinks();syncTeamRoleForm();syncOwnerAccountUi()}
 function orderSoundEnabled(){
   const saved=localStorage.getItem('lw-order-sound-enabled');
   if(saved===null){
@@ -1156,7 +1169,7 @@ function renderMenu(){const canEdit=['superadmin','dono'].includes(state.role);$
 function renderCategoriesAdmin(){const box=$('category-list');if(!box)return;box.innerHTML=state.categories.length?state.categories.map(x=>`<div class="manage-row"><label>Nome<input data-cat-name="${x.id}" value="${esc(x.nome)}"></label><label>Ordem<input data-cat-order="${x.id}" type="number" min="0" value="${Number(x.ordem||0)}"></label><label>Status<select data-cat-active="${x.id}"><option value="true" ${x.ativo!==false?'selected':''}>Ativa</option><option value="false" ${x.ativo===false?'selected':''}>Desativada</option></select></label><div class="manage-actions"><button class="btn ghost small" data-save-category="${x.id}">Salvar</button></div></div>`).join(''):'<div class="empty">Nenhuma categoria cadastrada.</div>'}
 function renderRegionsAdmin(){const box=$('region-list');if(!box)return;box.innerHTML=state.regions.length?state.regions.map(x=>`<div class="manage-row region-row"><label>Região<input data-region-name="${x.id}" value="${esc(x.nome)}"></label><label>Taxa<input data-region-fee="${x.id}" type="number" min="0" step="0.01" value="${Number(x.taxa||0).toFixed(2)}"></label><label>Ordem<input data-region-order="${x.id}" type="number" min="0" value="${Number(x.ordem||0)}"></label><label>Status<select data-region-active="${x.id}"><option value="true" ${x.ativo?'selected':''}>Ativa</option><option value="false" ${!x.ativo?'selected':''}>Desativada</option></select></label><div class="manage-actions"><button class="btn ghost small" data-save-region="${x.id}">Salvar</button></div></div>`).join(''):'<div class="empty"><div><b>Nenhuma região cadastrada</b><p>A taxa padrão da loja será usada até você criar regiões.</p></div></div>'}
 function renderAdminTables(){const box=$('admin-table-list');if(!box)return;box.innerHTML=state.mesas.length?state.mesas.map(x=>`<div class="manage-row"><label>Número<input data-table-number="${x.id}" type="number" min="1" value="${x.numero}"></label><label>Nome<input data-table-name="${x.id}" value="${esc(x.nome||'')}"></label><label>Status<select data-table-active="${x.id}"><option value="true" ${x.ativo?'selected':''}>Ativa</option><option value="false" ${!x.ativo?'selected':''}>Desativada</option></select></label><div class="manage-actions"><button class="btn ghost small" data-save-table="${x.id}">Salvar</button></div></div>`).join(''):'<div class="empty">Nenhuma mesa cadastrada.</div>'}
-function renderTeam(){const body=$('team-body');if(!body)return;body.innerHTML=state.team.length?state.team.map(t=>{const d=state.couriers.find(c=>c.id===t.entregador_id);const access=t.role==='dono'?(t.login||'—'):(t.nome||t.login||'—');return`<tr><td><strong>${esc(t.nome)}</strong></td><td>${esc(access)}</td><td>${esc(roles[t.role]||t.role)}</td><td>${t.ativo?'Ativo':'Bloqueado'}</td><td>${esc(d?.nome||'—')}</td><td><button class="btn ghost small" type="button" data-team-toggle="${t.id}" data-team-active="${t.ativo?'true':'false'}">${t.ativo?'Bloquear':'Reativar'}</button></td></tr>`}).join(''):'<tr><td colspan="6" class="muted">Nenhum perfil de equipe cadastrado ainda.</td></tr>'}
+function renderTeam(){const body=$('team-body');if(!body)return;const teamSource=state.isSuperadmin?state.team:state.team.filter(t=>!['dono','superadmin'].includes(t.role));body.innerHTML=teamSource.length?teamSource.map(t=>{const d=state.couriers.find(c=>c.id===t.entregador_id);const access=t.role==='dono'?(t.login||'—'):(t.nome||t.login||'—');return`<tr><td><strong>${esc(t.nome)}</strong></td><td>${esc(access)}</td><td>${esc(roles[t.role]||t.role)}</td><td>${t.ativo?'Ativo':'Bloqueado'}</td><td>${esc(d?.nome||'—')}</td><td><button class="btn ghost small" type="button" data-team-toggle="${t.id}" data-team-active="${t.ativo?'true':'false'}">${t.ativo?'Bloquear':'Reativar'}</button></td></tr>`}).join(''):'<tr><td colspan="6" class="muted">Nenhum perfil de equipe cadastrado ainda.</td></tr>'}
 function renderReports(){const source=state.reportOrders||[],finished=source.filter(o=>o.status==='finalizado'),cancelled=source.filter(o=>o.status==='cancelado'),open=source.filter(o=>!['finalizado','cancelado'].includes(o.status)),sales=finished.reduce((a,o)=>a+Number(o.total||0),0);$('r-sales').textContent=money(sales);$('r-finished').textContent=finished.length;$('r-ticket').textContent=money(finished.length?sales/finished.length:0);$('r-cancelled').textContent=cancelled.length;const pay={pix:0,dinheiro:0,cartao:0,nao_informado:0};for(const o of finished){const key=o.forma_pagamento&&pay[o.forma_pagamento]!=null?o.forma_pagamento:'nao_informado';pay[key]+=Number(o.total||0)}const mesa=finished.filter(o=>o.origem==='mesa').length,entrega=finished.filter(o=>o.origem!=='mesa'&&o.forma_entrega==='entrega').length,retirada=finished.filter(o=>o.origem!=='mesa'&&o.forma_entrega==='retirada').length,outros=finished.length-mesa-entrega-retirada;$('report-period-label').textContent=`${$('report-start').value||'—'} até ${$('report-end').value||'—'}`;$('report-summary').innerHTML=`<div><b>${finished.length} vendas finalizadas no período</b><p>Pix: ${money(pay.pix)} · Dinheiro: ${money(pay.dinheiro)} · Cartão: ${money(pay.cartao)}${pay.nao_informado>0?` · Não informado: ${money(pay.nao_informado)}`:''}</p><p>Entrega: ${entrega} · Retirada: ${retirada} · Mesas: ${mesa}${outros>0?` · Outros: ${outros}`:''} · Em aberto: ${open.length}</p></div>`}
 function renderSettings(){
   if(!state.config)return;
@@ -1285,20 +1298,33 @@ async function toggleStoreNow(e){const mode=state.config?.aceitando_pedidos?'fec
 async function enableStoreAutomatic(e){await setStoreMode('automatico',e.currentTarget)}
 
 function syncTeamRoleForm(){
-  const role=$('team-role')?.value||'garcom';
+  const roleSelect=$('team-role');
   const emailField=$('team-email-field');
   const email=$('team-email');
   const submit=$('team-submit');
-  const donoOption=$('team-role-dono');
-  const canCreateAdmin=!!state.isSuperadmin;
-  if(donoOption){
-    donoOption.hidden=!canCreateAdmin;
-    donoOption.disabled=!canCreateAdmin;
+  const panelHelp=$('team-panel-help');
+  const loginHelp=$('team-login-help');
+  if(!roleSelect)return;
+
+  let donoOption=$('team-role-dono');
+  if(state.isSuperadmin){
+    if(!donoOption){
+      donoOption=document.createElement('option');
+      donoOption.value='dono';
+      donoOption.id='team-role-dono';
+      donoOption.textContent='Admin / Dono';
+      roleSelect.appendChild(donoOption);
+    }
+    if(panelHelp)panelHelp.textContent='Crie acessos de Admin, Garçom e Entregador';
+    if(loginHelp)loginHelp.innerHTML='Garçom e Entregador entram usando <b>nome + senha</b>. O Admin/Dono entra usando <b>e-mail + senha</b>.';
+  }else{
+    if(donoOption)donoOption.remove();
+    if(roleSelect.value==='dono')roleSelect.value='garcom';
+    if(panelHelp)panelHelp.textContent='Crie acessos de Garçom e Entregador';
+    if(loginHelp)loginHelp.innerHTML='Garçom e Entregador entram usando somente <b>nome + senha</b>.';
   }
-  if(role==='dono'&&!canCreateAdmin){
-    $('team-role').value='garcom';
-  }
-  const isAdmin=$('team-role')?.value==='dono';
+
+  const isAdmin=state.isSuperadmin&&roleSelect.value==='dono';
   if(emailField)emailField.hidden=!isAdmin;
   if(email){
     email.required=isAdmin;
@@ -1306,6 +1332,78 @@ function syncTeamRoleForm(){
   }
   if(submit)submit.textContent=isAdmin?'Cadastrar Admin / Dono':'Cadastrar funcionário';
 }
+
+function syncOwnerAccountUi(){
+  const panel=$('owner-account-panel');
+  if(!panel)return;
+  const visible=state.role==='dono'&&!state.isSuperadmin&&!!state.session;
+  panel.hidden=!visible;
+  if(!visible)return;
+  const name=state.user?.user_metadata?.nome||'';
+  const email=state.user?.email||'';
+  if($('owner-account-name')&&!$('owner-account-name').value)$('owner-account-name').value=name;
+  if($('owner-account-email')&&!$('owner-account-email').value)$('owner-account-email').value=email;
+}
+
+async function saveOwnerAccount(e){
+  e.preventDefault();
+  if(state.role!=='dono'||state.isSuperadmin||!state.session){
+    toast('Esta área é exclusiva do Admin/Dono');
+    return;
+  }
+  const b=e.submitter;
+  const nome=$('owner-account-name').value.trim();
+  const email=$('owner-account-email').value.trim().toLowerCase();
+  const currentPassword=$('owner-account-current-password').value;
+  const newPassword=$('owner-account-new-password').value;
+  const confirmPassword=$('owner-account-confirm-password').value;
+
+  if(newPassword&&newPassword!==confirmPassword){
+    toast('A confirmação da nova senha não confere');
+    return;
+  }
+  if(newPassword&&newPassword.length<6){
+    toast('A nova senha precisa ter pelo menos 6 caracteres');
+    return;
+  }
+
+  setLoading(b,true,'Salvando conta...');
+  try{
+    const {data,error}=await sb.functions.invoke('update-owner-account',{
+      body:{
+        nome,
+        email,
+        current_password:currentPassword,
+        new_password:newPassword||null
+      }
+    });
+    if(error||data?.error)throw new Error(data?.error||error?.message||'Não foi possível atualizar a conta');
+
+    $('owner-account-current-password').value='';
+    $('owner-account-new-password').value='';
+    $('owner-account-confirm-password').value='';
+
+    try{
+      await sb.auth.refreshSession();
+      const {data:userData}=await sb.auth.getUser();
+      if(userData?.user)state.user=userData.user;
+    }catch(refreshError){
+      console.warn('Atualização da sessão:',refreshError);
+    }
+
+    if(state.user){
+      state.user={...state.user,email,user_metadata:{...(state.user.user_metadata||{}),nome}};
+    }
+    setupRoleUI();
+    toast(data?.password_changed?'Conta e senha atualizadas':'Conta atualizada');
+  }catch(err){
+    console.error('Minha conta:',err);
+    toast(err?.message||'Não foi possível atualizar a conta');
+  }finally{
+    setLoading(b,false);
+  }
+}
+
 async function createTeamUser(e){
   e.preventDefault();
   const b=e.submitter;
@@ -1411,7 +1509,7 @@ sidebar.addEventListener('touchmove',e=>{if(window.innerWidth>640||!sidebar.clas
 sidebar.addEventListener('touchend',e=>{if(window.innerWidth>640||!sidebar.classList.contains('open'))return;const dx=(e.changedTouches[0]?.clientX||sidebarTouchStartX)-sidebarTouchStartX;sidebar.style.transition='transform .22s ease';if(sidebarSwiping&&dx<-55){sidebar.style.transform=`translateX(-${sidebar.offsetWidth}px)`;setTimeout(()=>setSidebarOpen(false),220)}else{sidebar.style.transform='translateX(0)';setTimeout(()=>{sidebar.style.transition='';sidebar.style.transform=''},220)}sidebarSwiping=false},{passive:true});
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return}const goBtn=e.target.closest('[data-go]');if(goBtn){go(goBtn.dataset.go);return}const orderTab=e.target.closest('[data-order-tab]');if(orderTab){orderStatusFilter=orderTab.dataset.orderTab;renderOrders();return}const financeDay=e.target.closest('[data-finance-day]');if(financeDay){financeSelectedDay=Number(financeDay.dataset.financeDay);renderFinanceCalendar();return}const financeDelete=e.target.closest('[data-finance-delete]');if(financeDelete){deleteFinanceExpense(financeDelete.dataset.financeDelete,financeDelete);return}const printOrderBtn=e.target.closest('[data-print-order]');if(printOrderBtn){printOrder(printOrderBtn.dataset.printOrder);return}const printCom=e.target.closest('[data-print-comanda]');if(printCom){printComanda(printCom.dataset.printComanda);return}const closeCom=e.target.closest('[data-close-comanda]');if(closeCom){closeComanda(closeCom.dataset.closeComanda,closeCom);return}const adminTable=e.target.closest('[data-open-admin-table]');if(adminTable){openAdminTable(adminTable.dataset.openAdminTable);return}const table=e.target.closest('[data-open-table]');if(table){openWaiterTable(table.dataset.openTable);return}const cat=e.target.closest('[data-waiter-cat]');if(cat){waiterCategory=cat.dataset.waiterCat;renderWaiterOrder();return}const add=e.target.closest('[data-waiter-add]');if(add){const pid=add.dataset.waiterAdd;const sel=document.querySelector(`[data-waiter-variant="${pid}"]`);const vars=state.variants.filter(v=>v.produto_id===pid&&v.ativo);const variantId=sel?.value||(vars.length===1&&vars[0].nome!=='Padrão'?vars[0].id:'');const key=waiterItemKey(pid,variantId);waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();toast('Item adicionado');return}const plus=e.target.closest('[data-waiter-plus]');if(plus){const key=plus.dataset.waiterPlus;waiterCart[key]=(waiterCart[key]||0)+1;renderWaiterCart();return}const minus=e.target.closest('[data-waiter-minus]');if(minus){const key=minus.dataset.waiterMinus;waiterCart[key]=Math.max(0,(waiterCart[key]||0)-1);if(!waiterCart[key])delete waiterCart[key];renderWaiterCart();return}const status=e.target.closest('[data-status]');if(status){stopNewOrderAlert();changeStatus(status.dataset.order,status.dataset.status,status);return}const edit=e.target.closest('[data-edit-product]');if(edit){openProduct(state.products.find(p=>p.id===edit.dataset.editProduct));return}const saveCat=e.target.closest('[data-save-category]');if(saveCat){saveCategoryRow(saveCat.dataset.saveCategory,saveCat);return}const saveRegion=e.target.closest('[data-save-region]');if(saveRegion){saveRegionRow(saveRegion.dataset.saveRegion,saveRegion);return}const saveTable=e.target.closest('[data-save-table]');if(saveTable){saveTableRow(saveTable.dataset.saveTable,saveTable);return}const teamToggle=e.target.closest('[data-team-toggle]');if(teamToggle){toggleTeamActive(teamToggle.dataset.teamToggle,teamToggle.dataset.teamActive==='true',teamToggle);return}if(e.target.id==='add-variant'){addVariantEditorRow();return}const removeVariant=e.target.closest('[data-remove-variant]');if(removeVariant){removeVariant.closest('[data-variant-row]')?.remove();return}if(e.target.closest('[data-close-modal]')){$('product-modal').hidden=true}});
 document.addEventListener('change',e=>{const sel=e.target.closest('[data-assign]');if(sel){assignCourier(sel.dataset.assign,sel.value,sel);return}if(e.target.id?.startsWith('schedule-active-')){const i=e.target.id.split('-').pop(),open=$(`schedule-open-${i}`),close=$(`schedule-close-${i}`);if(open)open.disabled=!e.target.checked;if(close)close.disabled=!e.target.checked}});
-$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('printer-simulate').addEventListener('click',simulateThermalRoll);$('printer-diagnose').addEventListener('click',runPrinterDiagnostics);$('team-create-form').addEventListener('submit',createTeamUser);$('team-role').addEventListener('change',syncTeamRoleForm);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('pc-sound-toggle').addEventListener('click',e=>toggleOrderSound(e.currentTarget));$('pc-sound-test').addEventListener('click',testOrderSound);$('new-order-stop').addEventListener('click',stopNewOrderAlert);$('new-order-open').addEventListener('click',()=>{stopNewOrderAlert();orderStatusFilter='novo';go('orders');renderOrders()});$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
+$('refresh-orders').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-driver').addEventListener('click',()=>refreshOrdersOnly(true));$('refresh-tables').addEventListener('click',async()=>{await loadWaiterData();renderWaiter();toast('Mesas atualizadas')});$('refresh-admin-tables').addEventListener('click',async()=>{await Promise.all([loadComandas(),loadAdminConfigData()]);renderAdminTableFlow();toast('Mesas atualizadas')});$('back-to-admin-tables').addEventListener('click',closeAdminTable);$('back-to-tables').addEventListener('click',closeWaiterTable);$('send-table-order').addEventListener('click',e=>sendWaiterOrder(e.currentTarget));$('new-product').addEventListener('click',()=>openProduct());$('product-form').addEventListener('submit',saveProduct);$('product-new-category').addEventListener('click',()=>setProductCategoryCreator(true));$('product-category-cancel').addEventListener('click',()=>setProductCategoryCreator(false));$('product-category-save').addEventListener('click',e=>createProductCategory(e.currentTarget));$('product-category-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();createProductCategory($('product-category-save'))}});$('store-config-form').addEventListener('submit',saveStoreConfig);$('printer-paper').addEventListener('change',e=>{localStorage.setItem('lw-printer-paper',e.target.value==='58'?'58':'80');syncPrinterSettings();toast('Impressão ajustada para '+printerPaper()+' mm')});$('printer-test').addEventListener('click',testThermalPrinter);$('printer-simulate').addEventListener('click',simulateThermalRoll);$('printer-diagnose').addEventListener('click',runPrinterDiagnostics);$('team-create-form').addEventListener('submit',createTeamUser);$('team-role').addEventListener('change',syncTeamRoleForm);$('owner-account-form').addEventListener('submit',saveOwnerAccount);$('store-toggle-now').addEventListener('click',toggleStoreNow);$('store-auto-mode').addEventListener('click',enableStoreAutomatic);$('force-system-update').addEventListener('click',e=>forceSystemUpdate(e.currentTarget));$('push-toggle').addEventListener('click',e=>togglePushNotifications(e.currentTarget));$('push-test').addEventListener('click',e=>testPushNotification(e.currentTarget));$('pc-sound-toggle').addEventListener('click',e=>toggleOrderSound(e.currentTarget));$('pc-sound-test').addEventListener('click',testOrderSound);$('new-order-stop').addEventListener('click',stopNewOrderAlert);$('new-order-open').addEventListener('click',()=>{stopNewOrderAlert();orderStatusFilter='novo';go('orders');renderOrders()});$('category-form').addEventListener('submit',createCategory);$('region-form').addEventListener('submit',createRegion);$('table-form').addEventListener('submit',createTable);$('report-filter-form').addEventListener('submit',refreshReport);$('product-image').addEventListener('input',e=>updateImagePreview(e.target.value.trim()));$('product-image-file').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)updateImagePreview(URL.createObjectURL(file))});$('product-modal').addEventListener('click',e=>{if(e.target===$('product-modal'))$('product-modal').hidden=true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('product-modal').hidden)$('product-modal').hidden=true});$('payment-options-form').addEventListener('submit',savePaymentOptions);$('weekly-hours-form').addEventListener('submit',saveWeeklyHours);$('finance-expense-form').addEventListener('submit',saveFinanceExpense);$('finance-cost-form').addEventListener('submit',saveFinanceCost);$('finance-prev-month').addEventListener('click',()=>shiftFinanceMonth(-1));$('finance-next-month').addEventListener('click',()=>shiftFinanceMonth(1));
 document.addEventListener('pointerdown',()=>{if(orderSoundEnabled()){unlockOrderAudio();setOrderSoundUi()}},{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
@@ -1452,7 +1550,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260927-18', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260927-19', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
