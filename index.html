@@ -411,7 +411,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
   </section>
 
   <section class="page" id="page-settings">
-    <div class="panel">
+    <div class="panel" hidden>
       <div class="panel-head"><div><h2>Operação da loja</h2><p>Horário, abertura/fechamento e taxa são editáveis aqui</p></div><span class="status" id="store-status-badge">—</span></div>
             <div class="store-live-control">
         <div class="store-live-copy">
@@ -454,7 +454,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
           <button class="btn fire" type="submit">Salvar formas de pagamento</button>
         </form>
       </div>
-      <div class="panel">
+      <div class="panel" hidden>
         <div class="panel-head"><div><h2>Horário semanal</h2><p>Defina os dias e horários de funcionamento automático</p></div></div>
         <form id="weekly-hours-form" class="weekly-hours-form">
           <div class="schedule-list"><div class="schedule-row" data-schedule-row="0"><label class="schedule-day"><input type="checkbox" id="schedule-active-0"> <span>Domingo</span></label><input type="time" id="schedule-open-0" aria-label="Abertura Domingo"><span>até</span><input type="time" id="schedule-close-0" aria-label="Fechamento Domingo"></div><div class="schedule-row" data-schedule-row="1"><label class="schedule-day"><input type="checkbox" id="schedule-active-1"> <span>Segunda</span></label><input type="time" id="schedule-open-1" aria-label="Abertura Segunda"><span>até</span><input type="time" id="schedule-close-1" aria-label="Fechamento Segunda"></div><div class="schedule-row" data-schedule-row="2"><label class="schedule-day"><input type="checkbox" id="schedule-active-2"> <span>Terça</span></label><input type="time" id="schedule-open-2" aria-label="Abertura Terça"><span>até</span><input type="time" id="schedule-close-2" aria-label="Fechamento Terça"></div><div class="schedule-row" data-schedule-row="3"><label class="schedule-day"><input type="checkbox" id="schedule-active-3"> <span>Quarta</span></label><input type="time" id="schedule-open-3" aria-label="Abertura Quarta"><span>até</span><input type="time" id="schedule-close-3" aria-label="Fechamento Quarta"></div><div class="schedule-row" data-schedule-row="4"><label class="schedule-day"><input type="checkbox" id="schedule-active-4"> <span>Quinta</span></label><input type="time" id="schedule-open-4" aria-label="Abertura Quinta"><span>até</span><input type="time" id="schedule-close-4" aria-label="Fechamento Quinta"></div><div class="schedule-row" data-schedule-row="5"><label class="schedule-day"><input type="checkbox" id="schedule-active-5"> <span>Sexta</span></label><input type="time" id="schedule-open-5" aria-label="Abertura Sexta"><span>até</span><input type="time" id="schedule-close-5" aria-label="Fechamento Sexta"></div><div class="schedule-row" data-schedule-row="6"><label class="schedule-day"><input type="checkbox" id="schedule-active-6"> <span>Sábado</span></label><input type="time" id="schedule-open-6" aria-label="Abertura Sábado"><span>até</span><input type="time" id="schedule-close-6" aria-label="Fechamento Sábado"></div></div>
@@ -464,7 +464,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
     </div>
 
     <div class="panel printer-panel">
-      <div class="panel-head"><div><h2>Impressão térmica</h2><p>Configuração deste PC para impressoras térmicas do Windows, incluindo Elgin</p></div><span class="status" id="printer-status">80 mm</span></div>
+      <div class="panel-head"><div><h2>Impressão térmica</h2><p>Impressão das comandas internas neste PC, incluindo Elgin</p></div><span class="status" id="printer-status">80 mm</span></div>
       <div class="printer-settings">
         <label>Tamanho do papel
           <select id="printer-paper">
@@ -1623,7 +1623,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-20', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-21', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
