@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260928-2004-adicionais-garcom">
+<meta name="app-build" content="20260928-2015-adicionais-garcom-completo">
 <title>LW Grill House | Painel de Operação</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
@@ -1173,7 +1173,7 @@ function printComanda(id){
   const orders=comandaValidOrders(c);
   const total=Number(c.total||0);
   const opened=new Date(c.aberta_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco'});
-  const lines=orders.map(p=>`<section><div class="launch">Pedido #${esc(p.numero)} · ${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Rio_Branco'})}</div>${(p.itens||[]).map(i=>`<div class="row"><span>${Number(i.quantidade)}x ${esc(i.produto_nome)}${i.variante_nome&&i.variante_nome!=='Padrão'?' '+esc(i.variante_nome):''}</span><b>${money(i.total_item??Number(i.preco_unitario||0)*Number(i.quantidade||0))}</b></div>`).join('')}${p.observacoes?`<div class="obs">Obs.: ${esc(p.observacoes)}</div>`:''}</section>`).join('');
+  const lines=orders.map(p=>`<section><div class="launch">Pedido #${esc(p.numero)} · ${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Rio_Branco'})}</div>${(p.itens||[]).map(i=>`<div class="row"><span>${Number(i.quantidade)}x ${esc(i.produto_nome)}${i.variante_nome&&i.variante_nome!=='Padrão'?' '+esc(i.variante_nome):''}</span><b>${money(i.total_item??Number(i.preco_unitario||0)*Number(i.quantidade||0))}</b></div>${i.observacoes?`<div class="obs">${esc(i.observacoes)}</div>`:''}`).join('')}${p.observacoes?`<div class="obs">Obs.: ${esc(p.observacoes)}</div>`:''}</section>`).join('');
   openThermalPrint(thermalPrintHtml({
     title:`Comanda Mesa ${c.mesa_numero}`,
     subtitle:`COMANDA · MESA ${esc(c.mesa_numero)}`,
@@ -1403,7 +1403,7 @@ function renderWaiterOrder(){
   if(existing){
     const items=waiterExistingComanda?.itens||[];
     existing.hidden=!selectedMesa.ocupada;
-    existing.innerHTML=selectedMesa.ocupada?(items.length?`<b>Já pedido nesta mesa</b>${items.map(i=>`<div class="waiter-existing-item"><span>${Number(i.quantidade)}x ${esc(i.produto_nome)}${i.variante_nome&&i.variante_nome!=='Padrão'?' · '+esc(i.variante_nome):''}</span><strong>${money(i.total)}</strong></div>`).join('')}`:'<b>Comanda aberta</b><span>Carregando itens...</span>'):'';
+    existing.innerHTML=selectedMesa.ocupada?(items.length?`<b>Já pedido nesta mesa</b>${items.map(i=>`<div class="waiter-existing-item"><span>${Number(i.quantidade)}x ${esc(i.produto_nome)}${i.variante_nome&&i.variante_nome!=='Padrão'?' · '+esc(i.variante_nome):''}${i.observacoes?`<small class="internal-item-summary">${esc(i.observacoes)}</small>`:''}</span><strong>${money(i.total)}</strong></div>`).join('')}`:'<b>Comanda aberta</b><span>Carregando itens...</span>'):'';
   }
 
   const waiterCategories=state.categories.filter(c=>c.ativo!==false);
@@ -1850,7 +1850,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-26', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-27', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
