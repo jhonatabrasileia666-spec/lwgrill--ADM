@@ -997,8 +997,8 @@ function printerPaper(){
 function printerLayout(){
   const paper=printerPaper();
   return paper==='58'
-    ? {paper:'58mm',body:'50mm',item:'31mm',font:'10px',title:'16px',total:'14px',popup:360}
-    : {paper:'80mm',body:'72mm',item:'48mm',font:'11px',title:'18px',total:'16px',popup:420};
+    ? {paper:'58mm',body:'50mm',item:'31mm',font:'13px',title:'20px',subtitle:'16px',small:'11px',total:'18px',popup:360}
+    : {paper:'80mm',body:'72mm',item:'48mm',font:'14px',title:'22px',subtitle:'17px',small:'12px',total:'20px',popup:420};
 }
 function syncPrinterSettings(){
   const paper=printerPaper();
@@ -1007,7 +1007,7 @@ function syncPrinterSettings(){
 }
 function thermalPrintHtml({title,subtitle,meta='',body='',total='',footer=''}) {
   const p=printerLayout();
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:${p.paper} auto;margin:4mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{width:${p.body};margin:0 auto;font-family:Arial,sans-serif;color:#000;font-size:${p.font}}h1{font-size:${p.title};text-align:center;margin:0}h2{text-align:center;font-size:14px;margin:4px 0 8px}.meta{text-align:center;font-size:9px;margin-bottom:10px}.launch{font-weight:700;border-top:1px dashed #000;padding-top:7px;margin-top:7px}.row{display:flex;justify-content:space-between;gap:7px;padding:3px 0}.row span{max-width:${p.item};overflow-wrap:anywhere}.obs{font-size:9px;margin:3px 0 6px}.total{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:9px;padding-top:7px;font-size:${p.total};font-weight:900}.foot{text-align:center;border-top:1px dashed #000;margin-top:10px;padding-top:7px;font-size:9px}</style></head><body><h1>LW GRILL HOUSE</h1><h2>${subtitle}</h2>${meta?`<div class="meta">${meta}</div>`:''}${body}${total?`<div class="total"><span>TOTAL</span><span>${total}</span></div>`:''}${footer?`<div class="foot">${footer}</div>`:''}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:${p.paper} auto;margin:4mm}*{box-sizing:border-box}html,body{margin:0;padding:0}body{width:${p.body};margin:0 auto;font-family:Arial,sans-serif;color:#000;font-size:${p.font};line-height:1.28}h1{font-size:${p.title};text-align:center;margin:0;font-weight:900}h2{text-align:center;font-size:${p.subtitle};margin:5px 0 9px;font-weight:900}.meta{text-align:center;font-size:${p.small};margin-bottom:11px}.launch{font-size:${p.font};font-weight:900;border-top:1px dashed #000;padding-top:8px;margin-top:8px}.row{display:flex;justify-content:space-between;gap:7px;padding:4px 0}.row span{max-width:${p.item};overflow-wrap:anywhere;font-weight:700}.row b{font-weight:900}.obs{font-size:${p.small};font-weight:700;line-height:1.3;margin:5px 0 7px}.total{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:10px;padding-top:8px;font-size:${p.total};font-weight:900}.foot{text-align:center;border-top:1px dashed #000;margin-top:11px;padding-top:8px;font-size:${p.small};font-weight:700}</style></head><body><h1>LW GRILL HOUSE</h1><h2>${subtitle}</h2>${meta?`<div class="meta">${meta}</div>`:''}${body}${total?`<div class="total"><span>TOTAL</span><span>${total}</span></div>`:''}${footer?`<div class="foot">${footer}</div>`:''}</body></html>`;
 }
 function openThermalPrint(html,title='LW Grill House'){
   const p=printerLayout();
@@ -1911,7 +1911,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-29', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260929-30', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
