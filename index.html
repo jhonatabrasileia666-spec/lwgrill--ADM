@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260928-2015-adicionais-garcom-completo">
+<meta name="app-build" content="20260928-2035-pagamento-taxa-mapa">
 <title>LW Grill House | Painel de Operação</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
@@ -231,7 +231,10 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
       <div class="form-grid" style="padding:0 18px 18px">
         <label>Tipo do pedido<select id="internal-service"><option value="entrega">Entrega</option><option value="retirada">Retirada</option></select></label>
         <label>Nome do cliente no WhatsApp<input id="internal-customer" autocomplete="off" placeholder="Ex.: Carlos" maxlength="80"></label>
-        <label class="full" id="internal-address-field">Endereço do cliente <span class="mini-note">(opcional)</span><input id="internal-address" autocomplete="street-address" placeholder="Ex.: Rua X, nº 123, bairro..." maxlength="220"></label>
+        <label id="internal-region-field">Região da entrega<select id="internal-region"><option value="">Escolha a região</option></select></label>
+        <label>Forma de pagamento<select id="internal-payment"></select></label>
+        <label id="internal-change-field" hidden>Troco para quanto? <span class="mini-note">(opcional)</span><input id="internal-change" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 50,00"></label>
+        <label class="full" id="internal-address-field">Endereço do cliente<input id="internal-address" autocomplete="street-address" placeholder="Rua, número, bairro ou referência" maxlength="220"><span class="mini-note" id="internal-map-hint">O mapa usará o endereço + a região escolhida.</span></label>
         <label class="full">Observação <span class="mini-note">(opcional)</span><textarea id="internal-note" placeholder="Ex.: sem cebola, ponto da carne..."></textarea></label>
       </div>
     </div>
@@ -239,7 +242,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
       <div class="panel-head"><div><h2>Itens adicionados</h2><p>O que já entrou no pedido fica sempre visível aqui em cima.</p></div></div>
       <div class="waiter-cart-list" id="internal-cart-items"></div>
       <div class="waiter-cart-foot">
-        <div class="waiter-total"><span>Total</span><strong id="internal-total">R$ 0,00</strong></div>
+        <div class="waiter-total"><span id="internal-total-label">Total</span><strong id="internal-total">R$ 0,00</strong><small class="mini-note" id="internal-fee-note" hidden></small></div>
         <button class="btn fire waiter-send" id="send-internal-order">Lançar pedido</button>
       </div>
     </div>
@@ -1353,39 +1356,96 @@ function renderInternalOrder(){
   }).join(''):`<div class="empty"><div><b>Nenhum produto encontrado</b><p>${search?'Tente outro nome ou volte para Todos.':'Nenhum item nesta categoria.'}</p></div></div>`;
   renderInternalCart();
 }
+function internalSelectedRegion(){return state.regions.find(r=>String(r.id)===String($('internal-region')?.value||''))||null}
+function renderInternalOrderMetaOptions(){
+  const payment=$('internal-payment'),region=$('internal-region');
+  if(payment){
+    const prev=payment.value;
+    const opts=[
+      state.config?.aceita_pix!==false?['pix','Pix']:null,
+      state.config?.aceita_dinheiro!==false?['dinheiro','Dinheiro']:null,
+      state.config?.aceita_cartao!==false?['cartao','Cartão']:null
+    ].filter(Boolean);
+    payment.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    payment.value=opts.some(([v])=>v===prev)?prev:(opts[0]?.[0]||'pix');
+  }
+  if(region){
+    const prev=region.value;
+    const active=state.regions.filter(r=>r.ativo!==false);
+    region.innerHTML='<option value="">Escolha a região</option>'+active.map(r=>`<option value="${r.id}">${esc(r.nome)} · ${money(r.taxa)}</option>`).join('');
+    if(active.some(r=>String(r.id)===String(prev)))region.value=prev;
+  }
+  syncInternalAddressField();
+  syncInternalPaymentField();
+}
 function renderInternalCart(){
   if(!$('internal-cart-items'))return;
   const entries=[...internalOrderCart].filter(line=>Number(line.qty)>0).reverse();
-  let total=0;
+  let subtotal=0;
   $('internal-cart-items').innerHTML=entries.length?entries.map(line=>{
     const info=internalLineInfo(line);if(!info)return'';
-    total+=info.price*Number(line.qty);
+    subtotal+=info.price*Number(line.qty);
     const summary=internalLineSummary(line,info);
     return`<div class="waiter-cart-item"><div><b>${esc(info.p.nome)}${info.v&&info.v.nome!=='Padrão'?' · '+esc(info.v.nome):''}</b><span>${money(info.price)} cada</span>${summary?`<small class="internal-item-summary">${esc(summary)}</small>`:''}</div><div class="waiter-qty"><button data-internal-minus="${line.id}">−</button><b>${Number(line.qty)}</b><button data-internal-plus="${line.id}">+</button></div></div>`
   }).join(''):'<div class="empty" style="min-height:120px"><div><b>Pedido vazio</b><p>Adicione os itens pedidos pelo cliente.</p></div></div>';
-  $('internal-total').textContent=money(total);
+  const isDelivery=$('internal-service')?.value==='entrega';
+  const region=isDelivery?internalSelectedRegion():null;
+  const fee=region?Number(region.taxa||0):0;
+  $('internal-total').textContent=money(subtotal+fee);
+  $('internal-total-label').textContent=isDelivery?'Total com entrega':'Total';
+  if($('internal-fee-note')){
+    $('internal-fee-note').hidden=!region;
+    $('internal-fee-note').textContent=region?`Subtotal ${money(subtotal)} + entrega ${money(fee)} (${region.nome})`:'';
+  }
   $('send-internal-order').disabled=!entries.length;
 }
 function syncInternalAddressField(){
-  const field=$('internal-address-field'),input=$('internal-address'),isDelivery=$('internal-service')?.value==='entrega';
-  if(field)field.hidden=!isDelivery;
+  const addressField=$('internal-address-field'),regionField=$('internal-region-field'),input=$('internal-address'),region=$('internal-region'),isDelivery=$('internal-service')?.value==='entrega';
+  if(addressField)addressField.hidden=!isDelivery;
+  if(regionField)regionField.hidden=!isDelivery;
   if(input){input.disabled=!isDelivery;if(!isDelivery)input.value=''}
+  if(region){region.disabled=!isDelivery;if(!isDelivery)region.value=''}
+  renderInternalCart();
+}
+function syncInternalPaymentField(){
+  const payment=$('internal-payment'),changeField=$('internal-change-field'),change=$('internal-change');
+  const cash=payment?.value==='dinheiro';
+  if(changeField)changeField.hidden=!cash;
+  if(change){change.disabled=!cash;if(!cash)change.value=''}
+}
+function internalAddressMapUrl(address,regionName){
+  const query=[address,regionName,'Acre','Brasil'].filter(Boolean).join(', ');
+  return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+}
+function autoSelectInternalRegionFromAddress(){
+  const input=$('internal-address'),region=$('internal-region');
+  if(!input||!region||region.value)return;
+  const q=normalizeInternalSearch(input.value);
+  const match=state.regions.find(r=>r.ativo!==false&&q.includes(normalizeInternalSearch(r.nome)));
+  if(match){region.value=match.id;renderInternalCart()}
 }
 async function sendInternalOrder(button){
   const cliente=$('internal-customer').value.trim();
   const forma=$('internal-service').value;
   const endereco=forma==='entrega'?$('internal-address').value.trim():null;
+  const regiaoId=forma==='entrega'?($('internal-region').value||null):null;
+  const pagamento=$('internal-payment').value;
+  const trocoRaw=$('internal-change').value.trim();
+  const troco=pagamento==='dinheiro'&&trocoRaw?Number(trocoRaw):null;
   const entries=internalOrderCart.filter(line=>Number(line.qty)>0);
   if(cliente.length<2){toast('Informe o nome do cliente do WhatsApp');$('internal-customer').focus();return}
+  if(forma==='entrega'&&!regiaoId){toast('Escolha a região da entrega');$('internal-region').focus();return}
+  if(forma==='entrega'&&endereco.length<3){toast('Informe o endereço da entrega');$('internal-address').focus();return}
+  if(pagamento==='dinheiro'&&trocoRaw&&(!Number.isFinite(troco)||troco<=0)){toast('Informe um valor de troco válido');$('internal-change').focus();return}
   if(!entries.length){toast('Adicione pelo menos um item');return}
   const itens=entries.map(line=>({produto_id:line.productId,variante_id:line.variantId||null,quantidade:Number(line.qty),adicionais:line.addons||[],observacao:line.note||null}));
   setLoading(button,true,'Lançando...');
-  const {data,error}=await sb.rpc('criar_pedido_balcao',{p_cliente_nome:cliente,p_forma_entrega:forma,p_endereco_entrega:endereco||null,p_observacoes:$('internal-note').value.trim()||null,p_itens:itens});
+  const {data,error}=await sb.rpc('criar_pedido_balcao',{p_cliente_nome:cliente,p_forma_entrega:forma,p_endereco_entrega:endereco||null,p_regiao_entrega_id:regiaoId,p_forma_pagamento:pagamento,p_troco_para:troco,p_observacoes:$('internal-note').value.trim()||null,p_itens:itens});
   setLoading(button,false);
   if(error){console.error(error);toast(error.message||'Não foi possível lançar o pedido');return}
   if(data)seenOrderIds.add(String(data));
   internalOrderCart=[];internalOrderCategory='all';internalOrderSearch='';
-  $('internal-customer').value='';$('internal-address').value='';$('internal-note').value='';$('internal-service').value='entrega';syncInternalAddressField();if($('internal-product-search'))$('internal-product-search').value='';
+  $('internal-customer').value='';$('internal-address').value='';$('internal-region').value='';$('internal-change').value='';$('internal-note').value='';$('internal-service').value='entrega';renderInternalOrderMetaOptions();if($('internal-product-search'))$('internal-product-search').value='';
   await refreshOrdersOnly();renderInternalOrder();
   toast('Pedido lançado na fila · use Imprimir pedido');
   orderStatusFilter='novo';go('orders');
@@ -1446,7 +1506,7 @@ async function sendWaiterOrder(button){
   await loadWaiterData();
   renderWaiter()
 }
-function renderAll(){renderMetrics();renderOrders();renderLogistics();renderMenu();renderTeam();renderReports();renderSettings();renderAdminTableFlow();renderInternalOrder();if(state.role==='garcom')renderWaiter()}
+function renderAll(){renderMetrics();renderOrders();renderLogistics();renderMenu();renderTeam();renderReports();renderSettings();renderAdminTableFlow();renderInternalOrderMetaOptions();renderInternalOrder();if(state.role==='garcom')renderWaiter()}
 function courierWhatsAppNumber(raw){
   let digits=String(raw||'').replace(/\D/g,'');
   if(!digits)return'';
@@ -1459,7 +1519,14 @@ function deliveryWhatsAppMessage(order){
     `Pedido #${order.numero||''}`,
     `Cliente: ${order.cliente_nome||'Cliente'}`
   ];
-  if(order.endereco_entrega)lines.push(`Endereço: ${order.endereco_entrega}`);
+  const pay=({pix:'Pix',dinheiro:'Dinheiro',cartao:'Cartão'})[order.forma_pagamento]||order.forma_pagamento||'Não informado';
+  lines.push(`Pagamento: ${pay}${order.forma_pagamento==='dinheiro'&&order.troco_para?' · Troco para '+money(order.troco_para):''}`);
+  if(order.regiao_entrega_nome)lines.push(`Região: ${order.regiao_entrega_nome}`);
+  if(Number(order.taxa_entrega||0)>0)lines.push(`Taxa de entrega: ${money(order.taxa_entrega)}`);
+  if(order.endereco_entrega){
+    lines.push(`Endereço: ${order.endereco_entrega}`);
+    lines.push(`📍 Abrir no mapa: ${internalAddressMapUrl(order.endereco_entrega,order.regiao_entrega_nome)}`);
+  }
   lines.push('','*Itens:*');
   for(const item of (order.pedido_itens||[])){
     lines.push(`• ${Number(item.quantidade)}x ${item.produto_nome||'Item'}${item.variante_nome&&item.variante_nome!=='Padrão'?' · '+item.variante_nome:''}`);if(item.observacoes)lines.push(`  ${item.observacoes.replace(/\n/g,' | ')}`);
@@ -1809,7 +1876,10 @@ $('internal-item-qty').addEventListener('input',updateInternalComposerTotal);
 $('confirm-internal-item').addEventListener('click',confirmInternalItem);
 $('internal-item-modal').addEventListener('click',e=>{if(e.target===$('internal-item-modal'))closeInternalItemComposer()});
 $('internal-service').addEventListener('change',syncInternalAddressField);
-syncInternalAddressField();
+$('internal-payment').addEventListener('change',syncInternalPaymentField);
+$('internal-region').addEventListener('change',renderInternalCart);
+$('internal-address').addEventListener('input',autoSelectInternalRegionFromAddress);
+renderInternalOrderMetaOptions();
 document.addEventListener('pointerdown',()=>{if(orderSoundEnabled()){unlockOrderAudio();setOrderSoundUi()}},{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
 window.addEventListener('offline',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Sem internet';toast('Sem conexão com a internet. As alterações não serão sincronizadas.')}});
@@ -1850,7 +1920,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-27', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-28', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
