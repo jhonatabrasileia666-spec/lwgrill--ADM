@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-build" content="20260928-2035-pagamento-taxa-mapa">
+<meta name="app-build" content="20260928-2045-endereco-manual-entrega">
 <title>LW Grill House | Painel de Operação</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
@@ -234,7 +234,7 @@ body:has(#page-logistics.active) .notice strong{color:#fffaf0!important}
         <label id="internal-region-field">Região da entrega<select id="internal-region"><option value="">Escolha a região</option></select></label>
         <label>Forma de pagamento<select id="internal-payment"></select></label>
         <label id="internal-change-field" hidden>Troco para quanto? <span class="mini-note">(opcional)</span><input id="internal-change" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 50,00"></label>
-        <label class="full" id="internal-address-field">Endereço do cliente<input id="internal-address" autocomplete="street-address" placeholder="Rua, número, bairro ou referência" maxlength="220"><span class="mini-note" id="internal-map-hint">O mapa usará o endereço + a região escolhida.</span></label>
+        <label class="full" id="internal-address-field">Endereço do cliente<input id="internal-address" autocomplete="street-address" placeholder="Ex.: Rua João Pessoa, nº 120, Bairro Centro, próximo à praça" maxlength="220"><span class="mini-note">Digite exatamente como o endereço deve aparecer para o entregador e na comanda.</span></label>
         <label class="full">Observação <span class="mini-note">(opcional)</span><textarea id="internal-note" placeholder="Ex.: sem cebola, ponto da carne..."></textarea></label>
       </div>
     </div>
@@ -1413,16 +1413,11 @@ function syncInternalPaymentField(){
   if(changeField)changeField.hidden=!cash;
   if(change){change.disabled=!cash;if(!cash)change.value=''}
 }
-function internalAddressMapUrl(address,regionName){
-  const query=[address,regionName,'Acre','Brasil'].filter(Boolean).join(', ');
-  return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
-}
-function autoSelectInternalRegionFromAddress(){
-  const input=$('internal-address'),region=$('internal-region');
-  if(!input||!region||region.value)return;
-  const q=normalizeInternalSearch(input.value);
-  const match=state.regions.find(r=>r.ativo!==false&&q.includes(normalizeInternalSearch(r.nome)));
-  if(match){region.value=match.id;renderInternalCart()}
+function internalDeliveryAddressText(order){
+  const parts=[];
+  if(order?.endereco_entrega)parts.push(String(order.endereco_entrega).trim());
+  if(order?.regiao_entrega_nome)parts.push(String(order.regiao_entrega_nome).trim());
+  return parts.filter(Boolean).join(' · ');
 }
 async function sendInternalOrder(button){
   const cliente=$('internal-customer').value.trim();
@@ -1523,10 +1518,7 @@ function deliveryWhatsAppMessage(order){
   lines.push(`Pagamento: ${pay}${order.forma_pagamento==='dinheiro'&&order.troco_para?' · Troco para '+money(order.troco_para):''}`);
   if(order.regiao_entrega_nome)lines.push(`Região: ${order.regiao_entrega_nome}`);
   if(Number(order.taxa_entrega||0)>0)lines.push(`Taxa de entrega: ${money(order.taxa_entrega)}`);
-  if(order.endereco_entrega){
-    lines.push(`Endereço: ${order.endereco_entrega}`);
-    lines.push(`📍 Abrir no mapa: ${internalAddressMapUrl(order.endereco_entrega,order.regiao_entrega_nome)}`);
-  }
+  if(order.endereco_entrega)lines.push(`Endereço: ${order.endereco_entrega}`);
   lines.push('','*Itens:*');
   for(const item of (order.pedido_itens||[])){
     lines.push(`• ${Number(item.quantidade)}x ${item.produto_nome||'Item'}${item.variante_nome&&item.variante_nome!=='Padrão'?' · '+item.variante_nome:''}`);if(item.observacoes)lines.push(`  ${item.observacoes.replace(/\n/g,' | ')}`);
@@ -1878,7 +1870,6 @@ $('internal-item-modal').addEventListener('click',e=>{if(e.target===$('internal-
 $('internal-service').addEventListener('change',syncInternalAddressField);
 $('internal-payment').addEventListener('change',syncInternalPaymentField);
 $('internal-region').addEventListener('change',renderInternalCart);
-$('internal-address').addEventListener('input',autoSelectInternalRegionFromAddress);
 renderInternalOrderMetaOptions();
 document.addEventListener('pointerdown',()=>{if(orderSoundEnabled()){unlockOrderAudio();setOrderSoundUi()}},{passive:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('app-shell').hidden){refreshOperationalData();checkGlobalAppVersion(false);refreshPushStatus()}});
 window.addEventListener('online',()=>{if(!$('app-shell').hidden){$('sync-label').textContent='Conexão restabelecida';refreshOperationalData()}});
@@ -1920,7 +1911,7 @@ setLoginRole('dono');authenticate();
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
       try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-28', { scope: './' });
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260928-29', { scope: './' });
         await registration.update();
 
         registration.addEventListener('updatefound', () => {
