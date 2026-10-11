@@ -11,6 +11,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- LW-HOTFIX-20261011-SEGURANCA -->
 <meta name="app-build" content="20260928-2045-endereco-manual-entrega">
 <title>LW Grill House | Painel de Operação</title>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -1190,7 +1191,29 @@ async function closeComanda(id,button){const c=state.comandas.find(x=>x.id===id)
 
 async function loadWaiterData(){const {data:mesas,error:me}=await sb.rpc('listar_mesas_garcom_v2');if(me)throw me;state.mesas=mesas||[];await loadProducts();state.variants=state.variants.filter(v=>v.ativo)}
 async function loadAll(show=false){try{if(show)$('sync-label').textContent='Atualizando...';if(state.role==='garcom'){await loadWaiterData();$('sync-label').textContent='Mesas sincronizadas';renderWaiter();return}if(state.role==='entregador'){await loadOrders();$('sync-label').textContent='Entregas sincronizadas';renderDriver();return}await Promise.all([loadCouriers(),loadOrders(),loadComandas(),loadProducts(),loadTeam(),loadStoreConfig(),loadAdminConfigData(),loadReport(),safeLoadFinanceData()]);$('sync-label').textContent='Supabase conectado';renderAll()}catch(err){console.error(err);$('sync-label').textContent='Falha na sincronização';toast('Não foi possível atualizar o painel')}}
-async function refreshOperationalData(){try{if(state.role==='garcom'){await loadWaiterData();renderWaiter();return}if(state.role==='entregador'){await loadOrders();renderDriver();return}await Promise.all([loadCouriers(),loadOrders(),state.page==='tables'?loadComandas():Promise.resolve(),state.page==='logistics'?safeLoadFinanceData():Promise.resolve()]);renderMetrics();renderOrders();renderLogistics();if(state.page==='tables')renderAdminTableFlow();$('sync-label').textContent='Pedidos sincronizados'}catch(err){console.error('Atualização operacional:',err)}}
+let lwOperationalRefreshBusy=false;
+let lwOperationalRefreshPending=false;
+async function refreshOperationalData(){
+  if(lwOperationalRefreshBusy){lwOperationalRefreshPending=true;return}
+  lwOperationalRefreshBusy=true;
+  try{
+    if(state.role==='garcom'){await loadWaiterData();renderWaiter();return}
+    if(state.role==='entregador'){await loadOrders();renderDriver();return}
+    await Promise.all([loadCouriers(),loadOrders(),state.page==='tables'?loadComandas():Promise.resolve(),state.page==='logistics'?safeLoadFinanceData():Promise.resolve()]);
+    renderMetrics();renderOrders();renderLogistics();
+    if(state.page==='tables')renderAdminTableFlow();
+    $('sync-label').textContent='Pedidos sincronizados';
+  }catch(err){
+    console.error('Atualização operacional:',err);
+    $('sync-label').textContent='Falha na sincronização · confira conexão';
+  }finally{
+    lwOperationalRefreshBusy=false;
+    if(lwOperationalRefreshPending){
+      lwOperationalRefreshPending=false;
+      setTimeout(()=>{if(!document.hidden)refreshOperationalData()},300);
+    }
+  }
+}
 async function refreshOrdersOnly(show=false){try{if(show)$('sync-label').textContent='Atualizando pedidos...';await Promise.all([loadOrders(),loadCouriers(),state.page==='tables'?loadComandas():Promise.resolve()]);renderMetrics();renderOrders();if(state.page==='tables')renderAdminTableFlow();if(state.role==='entregador')renderDriver();$('sync-label').textContent='Pedidos sincronizados'}catch(err){console.error('Pedidos:',err);$('sync-label').textContent='Falha na sincronização';toast('Não foi possível atualizar os pedidos')}}
 function refreshIntervalMs(){return state.role==='garcom'?15000:60000}
 function startRefreshTimer(){clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(!document.hidden)refreshOperationalData()},refreshIntervalMs())}
@@ -1420,7 +1443,9 @@ function internalDeliveryAddressText(order){
   if(order?.regiao_entrega_nome)parts.push(String(order.regiao_entrega_nome).trim());
   return parts.filter(Boolean).join(' · ');
 }
+let lwInternalOrderSending=false;
 async function sendInternalOrder(button){
+  if(lwInternalOrderSending)return;
   const cliente=$('internal-customer').value.trim();
   const forma=$('internal-service').value;
   const endereco=forma==='entrega'?$('internal-address').value.trim():null;
@@ -1435,16 +1460,27 @@ async function sendInternalOrder(button){
   if(pagamento==='dinheiro'&&trocoRaw&&(!Number.isFinite(troco)||troco<=0)){toast('Informe um valor de troco válido');$('internal-change').focus();return}
   if(!entries.length){toast('Adicione pelo menos um item');return}
   const itens=entries.map(line=>({produto_id:line.productId,variante_id:line.variantId||null,quantidade:Number(line.qty),adicionais:line.addons||[],observacao:line.note||null}));
-  setLoading(button,true,'Lançando...');
-  const {data,error}=await sb.rpc('criar_pedido_balcao',{p_cliente_nome:cliente,p_forma_entrega:forma,p_endereco_entrega:endereco||null,p_regiao_entrega_id:regiaoId,p_forma_pagamento:pagamento,p_troco_para:troco,p_observacoes:$('internal-note').value.trim()||null,p_itens:itens});
-  setLoading(button,false);
-  if(error){console.error(error);toast(error.message||'Não foi possível lançar o pedido');return}
-  if(data)seenOrderIds.add(String(data));
-  internalOrderCart=[];internalOrderCategory='all';internalOrderSearch='';
-  $('internal-customer').value='';$('internal-address').value='';$('internal-region').value='';$('internal-change').value='';$('internal-note').value='';$('internal-service').value='entrega';renderInternalOrderMetaOptions();if($('internal-product-search'))$('internal-product-search').value='';
-  await refreshOrdersOnly();renderInternalOrder();
-  toast('Pedido lançado na fila · use Imprimir pedido');
-  orderStatusFilter='novo';go('orders');
+  lwInternalOrderSending=true;
+  setLoading(button,true,'Enviando pedido...');
+  try{
+    const {data,error}=await sb.rpc('criar_pedido_balcao',{p_cliente_nome:cliente,p_forma_entrega:forma,p_endereco_entrega:endereco||null,p_regiao_entrega_id:regiaoId,p_forma_pagamento:pagamento,p_troco_para:troco,p_observacoes:$('internal-note').value.trim()||null,p_itens:itens});
+    if(error)throw error;
+    if(!data)throw new Error('Servidor não retornou confirmação do pedido.');
+    seenOrderIds.add(String(data));
+    internalOrderCart=[];internalOrderCategory='all';internalOrderSearch='';
+    $('internal-customer').value='';$('internal-address').value='';$('internal-region').value='';$('internal-change').value='';$('internal-note').value='';$('internal-service').value='entrega';renderInternalOrderMetaOptions();if($('internal-product-search'))$('internal-product-search').value='';
+    await refreshOrdersOnly();
+    renderInternalOrder();
+    toast('Pedido confirmado no sistema · use Imprimir pedido');
+    orderStatusFilter='novo';go('orders');
+  }catch(err){
+    console.error('Falha ao confirmar pedido no LW:',err);
+    $('sync-label').textContent='Confirmação pendente: verifique os pedidos';
+    toast('Envio não confirmado. Confira Pedidos antes de tentar novamente.');
+  }finally{
+    setLoading(button,false);
+    lwInternalOrderSending=false;
+  }
 }
 function waiterItemKey(productId,variantId){return productId+'|'+(variantId||'')}
 function waiterVariant(productId,variantId){return state.variants.find(v=>v.produto_id===productId&&v.id===variantId)}
@@ -1488,19 +1524,29 @@ function renderWaiterCart(){
 }
 async function openWaiterTable(id){selectedMesa=state.mesas.find(m=>m.id===id)||null;if(!selectedMesa)return;waiterCart=[];waiterExistingComanda=null;waiterCategory='all';$('waiter-note').value='';$('waiter-tables-view').hidden=true;$('waiter-order-view').hidden=false;renderWaiterOrder();window.scrollTo({top:0,behavior:'smooth'});if(selectedMesa.ocupada){const {data,error}=await sb.rpc('resumo_comanda_mesa_garcom',{p_mesa_id:selectedMesa.id});if(!error&&selectedMesa?.id===id){waiterExistingComanda=data&&typeof data==='object'?data:null;renderWaiterOrder()}}}
 function closeWaiterTable(){$('waiter-order-view').hidden=true;$('waiter-tables-view').hidden=false;selectedMesa=null;waiterCart=[];waiterExistingComanda=null;waiterCategory='all'}
+let lwWaiterOrderSending=false;
 async function sendWaiterOrder(button){
-  if(!selectedMesa)return;
+  if(lwWaiterOrderSending||!selectedMesa)return;
   const entries=waiterCart.filter(line=>Number(line.qty)>0);
   if(!entries.length){toast('Adicione pelo menos um item');return}
   const itens=entries.map(line=>({produto_id:line.productId,variante_id:line.variantId||null,quantidade:Number(line.qty),adicionais:line.addons||[],observacao:line.note||null}));
+  lwWaiterOrderSending=true;
   setLoading(button,true,'Enviando...');
-  const {data,error}=await sb.rpc('criar_pedido_garcom',{p_mesa_id:selectedMesa.id,p_observacoes:$('waiter-note').value.trim()||null,p_itens:itens});
-  setLoading(button,false);
-  if(error){console.error(error);toast(error.message||'Não foi possível enviar o pedido');return}
-  toast('Pedido adicionado à comanda da mesa');
-  closeWaiterTable();
-  await loadWaiterData();
-  renderWaiter()
+  try{
+    const {data,error}=await sb.rpc('criar_pedido_garcom',{p_mesa_id:selectedMesa.id,p_observacoes:$('waiter-note').value.trim()||null,p_itens:itens});
+    if(error)throw error;
+    if(!data)throw new Error('Servidor não confirmou o pedido da mesa.');
+    toast('Pedido confirmado na comanda da mesa');
+    closeWaiterTable();
+    await loadWaiterData();
+    renderWaiter();
+  }catch(err){
+    console.error('Falha ao confirmar pedido de garçom:',err);
+    toast('Envio não confirmado. Confira a comanda antes de reenviar.');
+  }finally{
+    setLoading(button,false);
+    lwWaiterOrderSending=false;
+  }
 }
 function renderAll(){renderMetrics();renderOrders();renderLogistics();renderMenu();renderTeam();renderReports();renderSettings();renderAdminTableFlow();renderInternalOrderMetaOptions();renderInternalOrder();if(state.role==='garcom')renderWaiter()}
 function courierWhatsAppNumber(raw){
