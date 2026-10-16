@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lw-admin-pwa-v20261016-mesas-live-confirmadas';
+const CACHE_NAME = 'lw-admin-pwa-v20261016-mesas-voltam-preparo-v2';
 const APP_SHELL = [
   './',
   './index.html',
