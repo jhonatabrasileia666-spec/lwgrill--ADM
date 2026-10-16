@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lw-admin-pwa-v20260929-30-combos-addons';
+const CACHE_NAME = 'lw-admin-pwa-v20261016-mesas-live-confirmadas';
 const APP_SHELL = [
   './',
   './index.html',
