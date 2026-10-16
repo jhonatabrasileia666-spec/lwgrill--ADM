@@ -1190,7 +1190,7 @@ function printComanda(id){
 }
 async function closeComanda(id,button){const c=state.comandas.find(x=>x.id===id);if(!c){toast('Comanda não encontrada');return}if(!window.confirm(`Receber ${money(c.total)} da Mesa ${c.mesa_numero} e fechar a comanda?`))return;setLoading(button,true,'Fechando...');const {error}=await sb.rpc('fechar_comanda_mesa',{p_comanda_id:id,p_forma_pagamento:null,p_troco_para:null});setLoading(button,false);if(error){console.error(error);toast(error.message||'Não foi possível fechar a comanda');return}toast(`Comanda da Mesa ${c.mesa_numero} fechada`);selectedAdminMesaId=null;await Promise.all([loadOrders(),loadComandas()]);renderMetrics();renderOrders();renderAdminTableFlow()}
 
-async function loadWaiterData(){const {data:mesas,error:me}=await sb.rpc('listar_mesas_garcom_v2');if(me)throw me;state.mesas=mesas||[];await loadProducts();state.variants=state.variants.filter(v=>v.ativo)}
+async function loadWaiterData(){const {data:mesas,error:me}=await sb.rpc('listar_mesas_garcom_v2');if(me)throw me;state.mesas=mesas||[];if(selectedMesa){const newer=state.mesas.find(m=>String(m.id)===String(selectedMesa.id));if(newer)selectedMesa=newer}await loadProducts();state.variants=state.variants.filter(v=>v.ativo)}
 async function loadAll(show=false){try{if(show)$('sync-label').textContent='Atualizando...';if(state.role==='garcom'){await loadWaiterData();$('sync-label').textContent='Mesas sincronizadas';renderWaiter();return}if(state.role==='entregador'){await loadOrders();$('sync-label').textContent='Entregas sincronizadas';renderDriver();return}await Promise.all([loadCouriers(),loadOrders(),loadComandas(),loadProducts(),loadTeam(),loadStoreConfig(),loadAdminConfigData(),loadReport(),safeLoadFinanceData()]);$('sync-label').textContent='Supabase conectado';renderAll()}catch(err){console.error(err);$('sync-label').textContent='Falha na sincronização';toast('Não foi possível atualizar o painel')}}
 let operationalRefreshPromise=null,operationalRefreshPending=false,operationalRefreshTimer=null;
 function scheduleOperationalRefresh(){clearTimeout(operationalRefreshTimer);operationalRefreshTimer=setTimeout(()=>{if(!document.hidden&&!$('app-shell').hidden)refreshOperationalData()},300)}
@@ -1496,26 +1496,66 @@ function renderWaiterCart(){
     return`<div class="waiter-cart-item"><div><b>${esc(info.p.nome)}${info.v&&info.v.nome!=='Padrão'?' · '+esc(info.v.nome):''}</b><span>${money(info.price)} cada</span>${summary?`<small class="internal-item-summary">${esc(summary)}</small>`:''}</div><div class="waiter-qty"><button data-waiter-minus="${line.id}">−</button><b>${Number(line.qty)}</b><button data-waiter-plus="${line.id}">+</button></div></div>`
   }).join(''):'<div class="empty" style="min-height:120px"><div><b>Pedido vazio</b><p>Adicione itens do cardápio.</p></div></div>';
   $('waiter-total').textContent=money(total);
-  $('send-table-order').disabled=!entries.length;
+  $('send-table-order').disabled=!entries.length||waiterSubmissionInFlight;
 }
 async function openWaiterTable(id){selectedMesa=state.mesas.find(m=>m.id===id)||null;if(!selectedMesa)return;waiterCart=[];waiterExistingComanda=null;waiterCategory='all';$('waiter-note').value='';$('waiter-tables-view').hidden=true;$('waiter-order-view').hidden=false;renderWaiterOrder();window.scrollTo({top:0,behavior:'smooth'});if(selectedMesa.ocupada){const {data,error}=await sb.rpc('resumo_comanda_mesa_garcom',{p_mesa_id:selectedMesa.id});if(!error&&selectedMesa?.id===id){waiterExistingComanda=data&&typeof data==='object'?data:null;renderWaiterOrder()}}}
-function closeWaiterTable(){$('waiter-order-view').hidden=true;$('waiter-tables-view').hidden=false;selectedMesa=null;waiterCart=[];waiterExistingComanda=null;waiterCategory='all'}
+function closeWaiterTable(){if(waiterSubmissionInFlight)return;$('waiter-order-view').hidden=true;$('waiter-tables-view').hidden=false;selectedMesa=null;waiterCart=[];waiterExistingComanda=null;waiterCategory='all'}
+// Each waiter submission keeps the same UUID during retries, even after a reload.
+// Do not clear the draft after an uncertain network error: retrying the same key is safe.
 let waiterSubmissionInFlight=false;
+const WAITER_PENDING_KEY='lw-waiter-pending-v2';
+function waiterPendingRead(){
+  try{
+    const pending=JSON.parse(localStorage.getItem(WAITER_PENDING_KEY)||'null');
+    if(pending&&Date.now()-pending.at<86400000&&pending.user===String(state.user?.id||state.user?.email||'')&&pending.requestId)return pending;
+  }catch(e){console.warn('Comanda pendente inválida',e)}
+  return null;
+}
+function waiterPendingClear(){try{localStorage.removeItem(WAITER_PENDING_KEY)}catch(e){}}
+function waiterRequestId(){
+  if(globalThis.crypto?.randomUUID)return crypto.randomUUID();
+  // Browser without crypto.randomUUID: do not send without a reliable unique key.
+  throw new Error('Atualize seu navegador para registrar a comanda com segurança.');
+}
 async function sendWaiterOrder(button){
-  if(waiterSubmissionInFlight){toast('Pedido sendo enviado. Aguarde a confirmação.');return}
+  if(waiterSubmissionInFlight){toast('Este lançamento já está sendo enviado.');return}
   if(!selectedMesa){toast('Selecione uma mesa antes de enviar');return}
   const entries=waiterCart.filter(line=>Number(line.qty)>0);
   if(!entries.length){toast('Adicione pelo menos um item');return}
-  waiterSubmissionInFlight=true;
+  const mesaId=selectedMesa.id;
+  const note=$('waiter-note').value.trim()||null;
   const itens=entries.map(line=>({produto_id:line.productId,variante_id:line.variantId||null,quantidade:Number(line.qty),adicionais:line.addons||[],observacao:line.note||null}));
-  setLoading(button,true,'Enviando...');
-  let error=null;
-  try{const response=await sb.rpc('criar_pedido_garcom',{p_mesa_id:selectedMesa.id,p_observacoes:$('waiter-note').value.trim()||null,p_itens:itens});error=response.error}catch(err){error=err}finally{waiterSubmissionInFlight=false;setLoading(button,false)}
-  if(error){console.error('Falha ao registrar comanda:',error);toast(error.message||'Não foi possível confirmar o lançamento. Confira a comanda antes de tentar novamente.');return}
-  toast('Pedido adicionado à comanda da mesa');
-  closeWaiterTable();
-  await loadWaiterData();
-  renderWaiter()
+  const user=String(state.user?.id||state.user?.email||'');
+  const fingerprint=JSON.stringify({mesaId,note,itens});
+  let pending=waiterPendingRead();
+  if(!pending||pending.fingerprint!==fingerprint||pending.user!==user){
+    try{
+      pending={requestId:waiterRequestId(),mesaId,user,fingerprint,at:Date.now()};
+      localStorage.setItem(WAITER_PENDING_KEY,JSON.stringify(pending));
+    }catch(e){console.error('Não foi possível preparar o envio:',e);toast('Não foi possível preparar o pedido com segurança. Verifique o armazenamento do navegador.');return}
+  }
+  waiterSubmissionInFlight=true;
+  setLoading(button,true,'Registrando na comanda...');
+  try{
+    const {data,error}=await sb.rpc('criar_pedido_garcom_v2',{
+      p_mesa_id:mesaId,p_observacoes:note,p_itens:itens,
+      p_client_request_id:pending.requestId
+    });
+    if(error)throw error;
+    if(!data)throw new Error('O banco não confirmou o número do lançamento');
+    waiterPendingClear();
+    toast('Pedido registrado na comanda da mesa');
+    closeWaiterTable();
+    // A failed refresh must never make a saved submission look unsaved.
+    try{await loadWaiterData();renderWaiter()}catch(refreshError){console.error('Pedido confirmado, erro ao atualizar mesas:',refreshError);toast('Pedido salvo. Atualize as mesas para ver o total.')}
+  }catch(error){
+    console.error('Erro ao registrar pedido da mesa:',error);
+    toast('Envio não confirmado: '+(error?.message||'verifique sua conexão')+'. Toque em Enviar novamente SEM alterar os itens; o sistema evitará duplicação.');
+  }finally{
+    waiterSubmissionInFlight=false;
+    setLoading(button,false);
+    if(selectedMesa)renderWaiterCart();
+  }
 }
 function renderAll(){renderMetrics();renderOrders();renderLogistics();renderMenu();renderTeam();renderReports();renderSettings();renderAdminTableFlow();renderInternalOrderMetaOptions();renderInternalOrder();if(state.role==='garcom')renderWaiter()}
 function courierWhatsAppNumber(raw){
