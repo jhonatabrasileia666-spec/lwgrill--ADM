@@ -1545,6 +1545,7 @@ async function sendWaiterOrder(button){
     if(!data)throw new Error('O banco não confirmou o número do lançamento');
     waiterPendingClear();
     toast('Pedido registrado na comanda da mesa');
+    waiterSubmissionInFlight=false;
     closeWaiterTable();
     // A failed refresh must never make a saved submission look unsaved.
     try{await loadWaiterData();renderWaiter()}catch(refreshError){console.error('Pedido confirmado, erro ao atualizar mesas:',refreshError);toast('Pedido salvo. Atualize as mesas para ver o total.')}
