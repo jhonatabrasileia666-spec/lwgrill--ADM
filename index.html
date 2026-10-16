@@ -1035,8 +1035,10 @@ function renderAdminTableFlow(){
   box.innerHTML=activeMesas.length?activeMesas.map(m=>{
     const c=comandaForMesa(m),occupied=!!c;
     const orders=c?comandaValidOrders(c):[];
-    const stateClass=occupied?'occupied':'';
-    const stateText=!occupied?'Livre':`Em atendimento · ${orders.length} lançamento${orders.length===1?'':'s'}`;
+    const pending=orders.filter(p=>['novo','em_preparo'].includes(p.status)).length;
+    const ready=orders.filter(p=>p.status==='pronto').length;
+    const stateClass=pending?'pending':(occupied&&ready?'ready':'');
+    const stateText=!occupied?'Livre':pending?`${pending} pedido${pending===1?'':'s'} em andamento`:ready?'Tudo pronto · conferir conta':'Em atendimento';
     return `<button class="table-card ${occupied?'occupied':'free'} ${stateClass}" type="button" ${occupied?`data-open-admin-table="${m.id}"`:'disabled'}><b>Mesa ${esc(m.numero)}</b><span>${stateText}</span>${occupied?`<span class="table-account">${money(c.total)} · abrir comanda</span>`:'<span class="table-account">Sem consumo</span>'}</button>`;
   }).join(''):'<div class="empty"><div><b>Nenhuma mesa cadastrada</b><p>Cadastre as mesas em Loja para acompanhar as comandas.</p></div></div>';
 }
